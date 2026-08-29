@@ -1,0 +1,31 @@
+{
+  "tool_id": "run-manifest.write_manifest",
+  "function_group": "run-manifest",
+  "function_name": "write_manifest",
+  "runtime": "python",
+  "module": "scripts/run_manifest.py",
+  "callable": "write_manifest",
+  "compatible_contract_digest": "sha256:b635bca0e8d5cc8adc9afe750c86cede61dc28192bf359fbb0b0b5d45ba2641e",
+  "python_requires": ">=3.9",
+  "invocation": "python-callable-json",
+  "path_resolution": "script-relative",
+  "dependencies": {
+    "policy": "stdlib-or-assets",
+    "install_during_run": false,
+    "network_install": false,
+    "asset_paths": [],
+    "third_party_imports": []
+  },
+  "timeout_seconds": 60,
+  "environment": {
+    "inherit_all": false,
+    "allowlist": [
+      "PATH",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "PYTHONUTF8",
+      "PYTHONIOENCODING"
+    ]
+  }
+}

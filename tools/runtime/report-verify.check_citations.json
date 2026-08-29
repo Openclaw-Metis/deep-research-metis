@@ -1,0 +1,33 @@
+{
+  "tool_id": "report-verify.check_citations",
+  "function_group": "report-verify",
+  "function_name": "check_citations",
+  "runtime": "python",
+  "module": "scripts/report_verify.py",
+  "callable": "check_citations",
+  "compatible_contract_digest": "sha256:38e97e28a6c464d16ecd0a0801ecd60d837df1f84a6c26a879b2227a7a7a6d9a",
+  "python_requires": ">=3.9",
+  "invocation": "python-callable-json",
+  "path_resolution": "script-relative",
+  "dependencies": {
+    "policy": "stdlib-or-assets",
+    "install_during_run": false,
+    "network_install": false,
+    "asset_paths": [
+      "assets/lexicon"
+    ],
+    "third_party_imports": []
+  },
+  "timeout_seconds": 60,
+  "environment": {
+    "inherit_all": false,
+    "allowlist": [
+      "PATH",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "PYTHONUTF8",
+      "PYTHONIOENCODING"
+    ]
+  }
+}

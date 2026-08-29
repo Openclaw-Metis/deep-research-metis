@@ -1,0 +1,53 @@
+{
+  "description": "report-verification playbook 的最小請求範例：既有草稿只做稽核，不重新產出報告。",
+  "playbook_id": "report-verification",
+  "run_dir": "D:/research/grid-2026",
+  "calls": [
+    {
+      "function_id": "claim-ledger.extract_claims",
+      "payload": {
+        "run_dir": "D:/research/grid-2026",
+        "report_path": "report.md",
+        "require_cited_claims": true
+      }
+    },
+    {
+      "function_id": "report-verify.check_structure",
+      "payload": {
+        "run_dir": "D:/research/grid-2026",
+        "report_path": "report.md",
+        "required_sections": ["executive-summary", "findings", "limitations", "bibliography"],
+        "min_length": 600
+      }
+    },
+    {
+      "function_id": "report-verify.check_citations",
+      "payload": {
+        "run_dir": "D:/research/grid-2026",
+        "report_path": "report.md"
+      }
+    },
+    {
+      "function_id": "report-verify.check_claim_support",
+      "payload": {
+        "run_dir": "D:/research/grid-2026",
+        "strict": true,
+        "require_cross_language_anchor": false
+      }
+    },
+    {
+      "function_id": "run-manifest.write_manifest",
+      "payload": {
+        "run_dir": "D:/research/grid-2026",
+        "phase": "verification",
+        "phase_status": "complete",
+        "gate_results": [
+          {"gate": "check_structure", "status": "PASS"},
+          {"gate": "check_citations", "status": "PASS"},
+          {"gate": "check_claim_support", "status": "FAIL", "detail": "兩則主張仍為 unsupported，已退回補證"}
+        ]
+      }
+    }
+  ],
+  "expected_outcome": "稽核結果如實寫入 run_manifest.json；任一檢查為 FAIL 時不得宣稱報告可交付。"
+}

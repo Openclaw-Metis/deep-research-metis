@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Local Python Code as Tool registry",
+  "type": "object",
+  "required": ["schema_version", "registry_version", "skill_id", "domain_scope", "tools"],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "registry_version": {"type": "string", "minLength": 1},
+    "skill_id": {"type": "string", "minLength": 1},
+    "domain_scope": {
+      "type": "object",
+      "required": ["domain_id", "access_mode", "allow_unlisted_tools"],
+      "properties": {
+        "domain_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "access_mode": {"const": "domain-allowlist"},
+        "allow_unlisted_tools": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "function_group", "version", "summary", "playbook_ids", "contract_ref", "contract_digest", "runtime_ref", "code_digest", "status"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z][a-z0-9_]*$"},
+          "function_group": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "version": {"type": "string", "minLength": 1},
+          "summary": {"type": "string", "minLength": 1, "maxLength": 240},
+          "playbook_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}},
+          "contract_ref": {"type": "string", "pattern": "^tools/contracts/[^/]+\\.json$"},
+          "contract_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+          "runtime_ref": {"type": "string", "pattern": "^tools/runtime/[^/]+\\.json$"},
+          "code_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+          "status": {"enum": ["active", "deprecated", "disabled"]},
+          "replaced_by": {"type": ["string", "null"]}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,91 @@
+{
+  "id": "claim-ledger.extract_claims",
+  "version": "1.0.0",
+  "description": "跳過程式碼區塊、表格與書目後，依中英文標點切分句子，標記 cited、quantitative-uncited 與 qualitative 三種主張並寫入 claims.jsonl。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": {
+        "type": "string",
+        "description": "研究執行工作區的絕對或相對路徑，必須位於 skill 資料夾之外。"
+      },
+      "report_markdown": {
+        "type": "string",
+        "description": "報告 Markdown 全文；與 report_path 擇一提供。"
+      },
+      "report_path": {
+        "type": "string",
+        "description": "工作區內的報告檔案路徑；與 report_markdown 擇一提供。"
+      },
+      "require_cited_claims": {
+        "type": "boolean",
+        "description": "是否要求報告至少有一個帶引用的主張。"
+      }
+    },
+    "required": [
+      "run_dir"
+    ],
+    "additionalProperties": false
+  },
+  "semantic_validations": [
+    {
+      "rule_id": "report.source-required",
+      "description": "必須提供 report_markdown 或 report_path。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "report.path-inside-workspace",
+      "description": "報告路徑必須位於 run 工作區內。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "claim.no-cited-claim",
+      "description": "報告至少要有一個帶引用的事實主張。",
+      "failure_action": "block"
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "包含 claims 與分類 counts 的抽取結果。"
+  },
+  "result_policy": {
+    "validate_output_schema": true,
+    "sensitive_data_classes": [
+      "none"
+    ],
+    "redaction_rules": [
+      "移除任何 credential 或 token 類欄位後才回傳結果"
+    ],
+    "max_inline_bytes": 65536,
+    "overflow_action": "summarize"
+  },
+  "important_preconditions": [
+    "已有可驗證的報告草稿"
+  ],
+  "effects": {
+    "effect_classes": [
+      "read",
+      "write"
+    ],
+    "reads_input": true,
+    "creates_resource": true,
+    "modifies_input": false,
+    "external_write": false,
+    "destructive": false,
+    "data_egress": false,
+    "incurs_cost": false,
+    "privileged_access": false,
+    "requires_approval": false
+  },
+  "approval_policy": {
+    "mode": "not-required",
+    "scope": null,
+    "bind_to_target": false,
+    "bind_to_subject": true,
+    "expiry_required": false
+  },
+  "important_errors": [
+    "INVALID_ARGUMENT",
+    "SEMANTIC_VALIDATION_FAILED"
+  ]
+}

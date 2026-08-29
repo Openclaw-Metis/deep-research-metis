@@ -1,0 +1,31 @@
+{
+  "tool_id": "research-plan.build_plan",
+  "function_group": "research-plan",
+  "function_name": "build_plan",
+  "runtime": "python",
+  "module": "scripts/research_plan.py",
+  "callable": "build_plan",
+  "compatible_contract_digest": "sha256:8ae4bc6c8830504e21bd31b7ea9c8da87b8585493fc85be154aa0e5b37fe67c7",
+  "python_requires": ">=3.9",
+  "invocation": "python-callable-json",
+  "path_resolution": "script-relative",
+  "dependencies": {
+    "policy": "stdlib-or-assets",
+    "install_during_run": false,
+    "network_install": false,
+    "asset_paths": [],
+    "third_party_imports": []
+  },
+  "timeout_seconds": 60,
+  "environment": {
+    "inherit_all": false,
+    "allowlist": [
+      "PATH",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "PYTHONUTF8",
+      "PYTHONIOENCODING"
+    ]
+  }
+}

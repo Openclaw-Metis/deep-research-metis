@@ -1,0 +1,122 @@
+{
+  "id": "source-ledger.register_sources",
+  "version": "1.0.0",
+  "description": "把檢索到的來源寫入 append-only 的 sources.jsonl，正規化網址後產生穩定 source_id，重複來源合併回既有 id。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": {
+        "type": "string",
+        "description": "研究執行工作區的絕對或相對路徑，必須位於 skill 資料夾之外。"
+      },
+      "sources": {
+        "type": "array",
+        "description": "待登錄的來源清單。",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "來源的絕對網址。"
+            },
+            "title": {
+              "type": "string",
+              "description": "可用於書目的標題。"
+            },
+            "publisher": {
+              "type": "string",
+              "description": "發布機構。"
+            },
+            "published_at": {
+              "type": "string",
+              "description": "發布日期。"
+            },
+            "accessed_at": {
+              "type": "string",
+              "description": "存取時間。"
+            },
+            "source_type": {
+              "type": "string",
+              "description": "來源類型，例如 web、paper、report。"
+            },
+            "language": {
+              "type": "string",
+              "description": "來源語言。"
+            }
+          },
+          "required": [
+            "url",
+            "title"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "run_dir",
+      "sources"
+    ],
+    "additionalProperties": false
+  },
+  "semantic_validations": [
+    {
+      "rule_id": "source.url-invalid",
+      "description": "來源網址必須是含 scheme 與 host 的絕對網址。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "source.title-required",
+      "description": "每筆來源都要有標題，書目才可被引用。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "workspace.outside-skill-root",
+      "description": "來源帳本只能寫入 skill 外的工作區。",
+      "failure_action": "block"
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "包含 registered、duplicates 與 counts 的登錄結果。"
+  },
+  "result_policy": {
+    "validate_output_schema": true,
+    "sensitive_data_classes": [
+      "none"
+    ],
+    "redaction_rules": [
+      "移除任何 credential 或 token 類欄位後才回傳結果"
+    ],
+    "max_inline_bytes": 65536,
+    "overflow_action": "summarize"
+  },
+  "important_preconditions": [
+    "已完成檢索並取得可追溯網址"
+  ],
+  "effects": {
+    "effect_classes": [
+      "read",
+      "write"
+    ],
+    "reads_input": true,
+    "creates_resource": true,
+    "modifies_input": false,
+    "external_write": false,
+    "destructive": false,
+    "data_egress": false,
+    "incurs_cost": false,
+    "privileged_access": false,
+    "requires_approval": false
+  },
+  "approval_policy": {
+    "mode": "not-required",
+    "scope": null,
+    "bind_to_target": false,
+    "bind_to_subject": true,
+    "expiry_required": false
+  },
+  "important_errors": [
+    "INVALID_ARGUMENT",
+    "SEMANTIC_VALIDATION_FAILED"
+  ]
+}

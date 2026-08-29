@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Python Code as Tool execution trace",
+  "type": "object",
+  "required": ["trace_id", "skill_id", "domain_id", "playbook_id", "registry_version", "tool_id", "contract_digest", "code_digest", "events", "completion_status"],
+  "properties": {
+    "trace_id": {"type": "string", "minLength": 1},
+    "skill_id": {"type": "string", "minLength": 1},
+    "domain_id": {"type": "string", "minLength": 1},
+    "playbook_id": {"type": ["string", "null"]},
+    "registry_version": {"type": "string", "minLength": 1},
+    "tool_id": {"type": ["string", "null"]},
+    "contract_digest": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"},
+    "code_digest": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"},
+    "events": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["sequence", "event", "tool_id", "contract_version", "contract_digest", "status"],
+        "properties": {
+          "sequence": {"type": "integer", "minimum": 1},
+          "event": {"enum": ["scope-check", "playbook-select", "select", "load-contract", "validate-input", "validate-semantics", "validate-effects", "approval", "resolve-entrypoint", "validate-python", "resolve-assets", "invoke-python", "validate-output", "redact", "artifact", "result"]},
+          "tool_id": {"type": ["string", "null"]},
+          "contract_version": {"type": ["string", "null"]},
+          "contract_digest": {"type": ["string", "null"]},
+          "status": {"enum": ["PASS", "FAIL", "BLOCKED", "SKIPPED"]},
+          "details": {"type": "object"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "completion_status": {"enum": ["COMPLETED", "FAILED", "BLOCKED", "PARTIAL"]}
+  },
+  "additionalProperties": false
+}

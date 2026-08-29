@@ -1,0 +1,36 @@
+{
+  "min_pass_rate_delta": 0.0,
+  "max_time_increase_seconds": 30.0,
+  "max_token_increase": 5000,
+  "require_non_negative_pass_rate": true,
+  "required_eval_tags": [
+    "should-trigger",
+    "should-not-trigger",
+    "near-miss",
+    "happy-path",
+    "edge-case",
+    "failure-mode",
+    "overlap-neighbor"
+  ],
+  "required_eval_languages": ["zh", "en", "mixed"],
+  "required_trace_scenarios": [
+    "happy-path",
+    "out-of-domain",
+    "unlisted-function",
+    "invalid-arguments",
+    "approval-denied",
+    "semantic-validation-failure",
+    "expert-validation-failure",
+    "output-redaction",
+    "python-only",
+    "asset-dependency",
+    "workflow-composition",
+    "cwd-independent",
+    "function-failure"
+  ],
+  "blocking_conditions": [
+    "任一 required_eval_tag 或 required_eval_language 缺席",
+    "tool-execution trace 少於 required_trace_scenarios 的任一情境",
+    "claim support 判定由 supported 退步為 unsupported 而沒有對應的證據變更"
+  ]
+}

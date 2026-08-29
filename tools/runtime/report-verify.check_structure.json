@@ -1,0 +1,33 @@
+{
+  "tool_id": "report-verify.check_structure",
+  "function_group": "report-verify",
+  "function_name": "check_structure",
+  "runtime": "python",
+  "module": "scripts/report_verify.py",
+  "callable": "check_structure",
+  "compatible_contract_digest": "sha256:ea7a3b2c0ff0f663554cc083f90d45d28473be53454da1982b1c4549c8284f14",
+  "python_requires": ">=3.9",
+  "invocation": "python-callable-json",
+  "path_resolution": "script-relative",
+  "dependencies": {
+    "policy": "stdlib-or-assets",
+    "install_during_run": false,
+    "network_install": false,
+    "asset_paths": [
+      "assets/lexicon"
+    ],
+    "third_party_imports": []
+  },
+  "timeout_seconds": 60,
+  "environment": {
+    "inherit_all": false,
+    "allowlist": [
+      "PATH",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "PYTHONUTF8",
+      "PYTHONIOENCODING"
+    ]
+  }
+}

@@ -1,0 +1,282 @@
+{
+  "name": "deep-research-metis",
+  "archetype": "tool-executor",
+  "primary_job": "在單一研究報告領域內，以隨 Skill 交付的 Python 函數完成來源身分、證據持久化、主張抽取、雙語驗證與自包含 HTML 交付。",
+  "inputs": [
+    "研究問題、子問題與研究深度模式",
+    "檢索所得的來源清單與逐字引文",
+    "待驗證的報告 Markdown 或工作區內報告路徑"
+  ],
+  "outputs": [
+    "工作區內的 research_plan.json、sources.jsonl、evidence.jsonl、claims.jsonl、citation_map.json、claim_support.json 與 run_manifest.json",
+    "通過結構、引用與支撐度檢查的報告與自包含 HTML 交付物",
+    "被 guard 阻擋時的 typed failure envelope 與 failed_rule_id"
+  ],
+  "acceptance_gates": [
+    "code-as-tool",
+    "python-only",
+    "scripts entrypoint",
+    "stdlib-or-assets dependencies",
+    "semantic argument validation",
+    "effect and approval enforcement",
+    "result governance"
+  ],
+  "handoff_to": [
+    "單次事實查詢交回 host 的一般網頁檢索流程",
+    "簡報、影片或排版交付交給對應的專門 skill"
+  ],
+  "negative_triggers": [
+    "只需要一到兩次搜尋就能回答的查詢",
+    "單一文件摘要或翻譯",
+    "沒有領域邊界的任意程式執行需求"
+  ],
+  "state_paths": [
+    "呼叫端指定的 run_dir 工作區，必須位於 skill 資料夾之外"
+  ],
+  "tool_execution": {
+    "protocol_version": "1.0.0",
+    "execution_model": "code-as-tool",
+    "language": "python",
+    "registry": "tools/registry.json",
+    "capability_source": "SKILL.md",
+    "domain_policy": {
+      "domain_id": "deep-research-report",
+      "domain_summary": "多來源、可追溯、claim 級可驗證的研究報告生產與稽核。",
+      "supported_tasks": [
+        "從研究問題產出含證據鏈的完整報告",
+        "為既有報告稽核引用鏈與主張支撐度",
+        "登錄來源身分並持久化逐字證據",
+        "把通過驗證的報告渲染為自包含 HTML 交付物"
+      ],
+      "out_of_scope": [
+        "單次事實查詢與單一文件摘要",
+        "網頁檢索與內容抓取本身",
+        "簡報、影片、試算表等非報告媒介",
+        "與研究報告無關的一般程式執行"
+      ],
+      "access_mode": "domain-allowlist",
+      "allow_unlisted_tools": false,
+      "out_of_domain_policy": "handoff"
+    },
+    "expertise": {
+      "source": "SKILL.md",
+      "playbooks": [
+        {
+          "id": "full-research-report",
+          "task": "從研究問題一路完成到通過驗證的報告與 HTML 交付物。",
+          "allowed_tools": [
+            "research-plan.build_plan",
+            "source-ledger.register_sources",
+            "evidence-store.append_evidence",
+            "claim-ledger.extract_claims",
+            "report-verify.check_structure",
+            "report-verify.check_citations",
+            "report-verify.check_claim_support",
+            "report-render.render_html",
+            "run-manifest.write_manifest"
+          ],
+          "selection_rules": [
+            "使用者要求完整研究報告且尚未有草稿時採用本 playbook",
+            "已有報告草稿只需稽核時改用 report-verification",
+            "只需登錄來源與證據時改用 evidence-intake"
+          ],
+          "preconditions": [
+            "已取得研究問題與可寫入的 run_dir 工作區",
+            "檢索能力由 host 提供，來源與引文可由呼叫端取得",
+            "渲染交付物前已備妥 approval record"
+          ],
+          "workflow": {
+            "steps": [
+              {"id": "plan", "function_id": "research-plan.build_plan", "depends_on": []},
+              {"id": "sources", "function_id": "source-ledger.register_sources", "depends_on": ["plan"]},
+              {"id": "evidence", "function_id": "evidence-store.append_evidence", "depends_on": ["sources"]},
+              {"id": "claims", "function_id": "claim-ledger.extract_claims", "depends_on": ["evidence"]},
+              {"id": "structure", "function_id": "report-verify.check_structure", "depends_on": ["claims"]},
+              {"id": "citations", "function_id": "report-verify.check_citations", "depends_on": ["claims"]},
+              {"id": "support", "function_id": "report-verify.check_claim_support", "depends_on": ["structure", "citations"]},
+              {"id": "render", "function_id": "report-render.render_html", "depends_on": ["support"]},
+              {"id": "manifest", "function_id": "run-manifest.write_manifest", "depends_on": ["render"]}
+            ]
+          },
+          "execution_steps": [
+            "先以 build_plan 固定模式預算、必要章節與停止條件",
+            "以 register_sources 登錄每一個引用來源並取得穩定 source_id",
+            "以 append_evidence 持久化逐字引文，寫作時只引用已持久化的內容",
+            "草稿完成後依序執行 extract_claims、check_structure 與 check_citations",
+            "以 check_claim_support 評分每個帶引用主張，補證後重跑",
+            "三項檢查皆 PASS 且取得 approval 後才執行 render_html",
+            "以 write_manifest 記錄階段狀態、gate 結果與產物 digest"
+          ],
+          "success_criteria": [
+            "check_structure 的 status 為 PASS 且沒有 placeholder finding",
+            "check_citations 沒有 error 級 finding 且每個行內引用都對應到已登錄來源",
+            "check_claim_support 沒有 unsupported 主張，unverifiable 主張已在報告中標註查證建議",
+            "run_manifest.json 記錄了本輪實際執行的 gate 結果"
+          ],
+          "fallbacks": [
+            "來源數量低於模式下限時改為部分交付並在報告限制章節說明",
+            "支撐度不足時先補證據再重跑驗證，而不是放寬門檻",
+            "無法取得寫入授權時只交付 Markdown 報告與驗證結果"
+          ],
+          "fallback_policy": {
+            "runtime_unavailable": "stop",
+            "tool_failure": "stop",
+            "success_validation_failure": "stop",
+            "allowed_alternate_tools": ["run-manifest.write_manifest"]
+          },
+          "stop_conditions": [
+            "run_dir 落在 skill 資料夾內",
+            "引用鏈存在無法對應到來源的行內引用",
+            "使用者要求的其實是單次查詢或單一文件摘要"
+          ]
+        },
+        {
+          "id": "report-verification",
+          "task": "對既有報告草稿執行唯讀性質的引用與支撐度稽核。",
+          "allowed_tools": [
+            "claim-ledger.extract_claims",
+            "report-verify.check_structure",
+            "report-verify.check_citations",
+            "report-verify.check_claim_support",
+            "run-manifest.write_manifest"
+          ],
+          "selection_rules": [
+            "使用者已有報告草稿並要求檢查引用或主張支撐度時採用",
+            "報告尚未存在時改用 full-research-report",
+            "只想登錄新來源時改用 evidence-intake"
+          ],
+          "preconditions": [
+            "工作區已有 sources.jsonl 與 evidence.jsonl",
+            "報告草稿可由 report_markdown 或工作區路徑取得"
+          ],
+          "workflow": {
+            "steps": [
+              {"id": "claims", "function_id": "claim-ledger.extract_claims", "depends_on": []},
+              {"id": "structure", "function_id": "report-verify.check_structure", "depends_on": ["claims"]},
+              {"id": "citations", "function_id": "report-verify.check_citations", "depends_on": ["claims"]},
+              {"id": "support", "function_id": "report-verify.check_claim_support", "depends_on": ["structure", "citations"]},
+              {"id": "manifest", "function_id": "run-manifest.write_manifest", "depends_on": ["support"]}
+            ]
+          },
+          "execution_steps": [
+            "先抽取主張，讓後續檢查有可定位的 claim_id",
+            "並行執行結構檢查與引用檢查，兩者不共用輸出檔",
+            "引用檢查產生 citation_map.json 後才評分支撐度",
+            "把三項檢查結果寫入 run manifest 作為稽核證據"
+          ],
+          "success_criteria": [
+            "每個 finding 都帶有 claim_id、entry 或行號等可定位資訊",
+            "支撐度報告區分 supported、partial、unsupported 與 unverifiable",
+            "稽核結論如實反映 FAIL，不以人工判斷覆蓋"
+          ],
+          "fallbacks": [
+            "證據帳本為空時先交回 evidence-intake 補齊證據",
+            "報告缺少書目章節時只回傳結構檢查結果並說明缺口"
+          ],
+          "fallback_policy": {
+            "runtime_unavailable": "handoff",
+            "tool_failure": "stop",
+            "success_validation_failure": "stop",
+            "allowed_alternate_tools": ["run-manifest.write_manifest"]
+          },
+          "stop_conditions": [
+            "工作區沒有來源或證據帳本可供比對",
+            "使用者要求把 FAIL 直接改寫成 PASS"
+          ]
+        },
+        {
+          "id": "evidence-intake",
+          "task": "在寫作前先建立可追溯的來源身分與逐字證據底稿。",
+          "allowed_tools": [
+            "research-plan.build_plan",
+            "source-ledger.register_sources",
+            "evidence-store.append_evidence",
+            "run-manifest.write_manifest"
+          ],
+          "selection_rules": [
+            "使用者要先蒐集與整理來源、暫不產出報告時採用",
+            "已有完整證據並要寫報告時改用 full-research-report",
+            "只要稽核既有報告時改用 report-verification"
+          ],
+          "preconditions": [
+            "已知研究問題與可寫入的 run_dir 工作區",
+            "每筆引文都能對應到具體來源網址"
+          ],
+          "workflow": {
+            "steps": [
+              {"id": "plan", "function_id": "research-plan.build_plan", "depends_on": []},
+              {"id": "sources", "function_id": "source-ledger.register_sources", "depends_on": ["plan"]},
+              {"id": "evidence", "function_id": "evidence-store.append_evidence", "depends_on": ["sources"]},
+              {"id": "manifest", "function_id": "run-manifest.write_manifest", "depends_on": ["evidence"]}
+            ]
+          },
+          "execution_steps": [
+            "以 build_plan 固定檢索預算，避免無上限蒐集",
+            "分批登錄來源，重複網址由 ledger 自動合併",
+            "逐字引文附上 locator，方便日後回查",
+            "以 write_manifest 記錄 evidence 階段為 complete 或 partial"
+          ],
+          "success_criteria": [
+            "來源數量達到模式下限，或已明確記錄未達標原因",
+            "每筆證據都綁定到已登錄的 source_id",
+            "manifest 的 evidence 階段狀態與實際結果一致"
+          ],
+          "fallbacks": [
+            "來源不足時記錄為 partial 並列出仍缺的子問題",
+            "引文過長時改為擷取關鍵段落並保留 locator"
+          ],
+          "fallback_policy": {
+            "runtime_unavailable": "handoff",
+            "tool_failure": "stop",
+            "success_validation_failure": "stop",
+            "allowed_alternate_tools": ["run-manifest.write_manifest"]
+          },
+          "stop_conditions": [
+            "來源沒有可追溯網址",
+            "引文是改寫而非原文"
+          ]
+        }
+      ]
+    },
+    "dependency_policy": {
+      "mode": "stdlib-or-assets",
+      "asset_root": "assets/",
+      "install_during_run": false,
+      "network_install": false
+    },
+    "invocation": {
+      "mode": "python-callable-json",
+      "runner": "scripts/run_function.py",
+      "entrypoint_root": "scripts/",
+      "path_resolution": "script-relative",
+      "validate_arguments": true,
+      "validate_semantics": true,
+      "validate_effects": true,
+      "enforce_approval": true,
+      "enforce_result_policy": true,
+      "capture_exit_code": true,
+      "capture_stderr": true
+    },
+    "observability": {
+      "trace_schema": "schemas/tool-execution-trace.schema.json",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "validate-semantics",
+        "validate-effects",
+        "approval",
+        "resolve-entrypoint",
+        "validate-python",
+        "resolve-assets",
+        "invoke-python",
+        "validate-output",
+        "redact",
+        "artifact",
+        "result"
+      ]
+    }
+  }
+}

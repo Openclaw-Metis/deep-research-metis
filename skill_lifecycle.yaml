@@ -1,0 +1,74 @@
+name: deep-research-metis
+status: active
+owner: Openclaw-Metis
+archetype: tool-executor
+primary_structure_pattern: code-as-tool
+lifecycle:
+  created_at: 2026-08-29
+  last_validated_at: 2026-08-29
+  last_released_at: 2026-08-29
+  review_interval_days: 60
+  next_review_due: 2026-10-28
+support:
+  primary_hosts:
+    - agent-skills
+    - codex
+  secondary_hosts:
+    - openclaw
+  unsupported_hosts: []
+risk:
+  external_side_effects: true
+  external_side_effect_scope: 只在呼叫端指定的 run_dir 工作區內建立研究產物與 HTML 交付物；渲染交付物需要 approval record。
+  requires_secrets: false
+  data_sensitivity: low
+dependencies:
+  scripts:
+    - scripts/run_function.py
+    - scripts/research_store.py
+    - scripts/research_plan.py
+    - scripts/source_ledger.py
+    - scripts/evidence_store.py
+    - scripts/claim_ledger.py
+    - scripts/report_verify.py
+    - scripts/report_render.py
+    - scripts/run_manifest.py
+  references:
+    - references/readiness_report.md
+    - references/methodology.md
+    - references/bilingual-verification.md
+    - references/checklist_template.md
+  evals:
+    - assets/evals/evals.json
+    - assets/evals/tool-execution-traces.json
+    - assets/evals/regression_gates.json
+  assets:
+    - assets/lexicon/section_aliases.json
+  schemas:
+    - schemas/skill-contract.json
+    - schemas/tool-registry.schema.json
+  policies:
+    - policies/release_policy.yaml
+    - policies/portability_policy.yaml
+    - policies/retirement_policy.yaml
+  examples:
+    - examples/full-report-run.md
+    - examples/verification-request.json
+runtime:
+  language: python
+  python_requires: ">=3.9"
+  third_party_packages: []
+  network_calls: false
+stewardship:
+  reviewers:
+    - Openclaw-Metis
+  stale_after_days: 120
+  escalation:
+    stale: needs-maintenance
+    no_owner: orphaned
+portfolio:
+  overlaps_with: []
+  hands_off_to: []
+  depends_on: []
+  supersedes: []
+  deprecated_by: null
+  shares_tool_contract_with: []

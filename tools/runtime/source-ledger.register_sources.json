@@ -1,0 +1,31 @@
+{
+  "tool_id": "source-ledger.register_sources",
+  "function_group": "source-ledger",
+  "function_name": "register_sources",
+  "runtime": "python",
+  "module": "scripts/source_ledger.py",
+  "callable": "register_sources",
+  "compatible_contract_digest": "sha256:f835c6fced0d57cbdfdb53b01b21c901a5094f4703ee821e61f2bb717a6ec1bb",
+  "python_requires": ">=3.9",
+  "invocation": "python-callable-json",
+  "path_resolution": "script-relative",
+  "dependencies": {
+    "policy": "stdlib-or-assets",
+    "install_during_run": false,
+    "network_install": false,
+    "asset_paths": [],
+    "third_party_imports": []
+  },
+  "timeout_seconds": 60,
+  "environment": {
+    "inherit_all": false,
+    "allowlist": [
+      "PATH",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "PYTHONUTF8",
+      "PYTHONIOENCODING"
+    ]
+  }
+}

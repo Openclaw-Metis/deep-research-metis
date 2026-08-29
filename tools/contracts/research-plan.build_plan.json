@@ -1,0 +1,120 @@
+{
+  "id": "research-plan.build_plan",
+  "version": "1.0.0",
+  "description": "接受研究問題與呼叫端撰寫的子問題，產生 plan_id、模式預算、必要章節標題與停止條件，並寫入工作區的 research_plan.json。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": {
+        "type": "string",
+        "description": "研究執行工作區的絕對或相對路徑，必須位於 skill 資料夾之外。"
+      },
+      "question": {
+        "type": "string",
+        "description": "使用者的研究問題原文。"
+      },
+      "sub_questions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "呼叫端自行擬定的子問題清單。"
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "quick",
+          "standard",
+          "deep",
+          "ultradeep"
+        ],
+        "description": "決定檢索預算的研究深度。"
+      },
+      "language": {
+        "type": "string",
+        "enum": [
+          "zh-TW",
+          "en"
+        ],
+        "description": "報告輸出語言。"
+      },
+      "audience": {
+        "type": "string",
+        "description": "報告讀者定位。"
+      }
+    },
+    "required": [
+      "run_dir",
+      "question",
+      "sub_questions"
+    ],
+    "additionalProperties": false
+  },
+  "semantic_validations": [
+    {
+      "rule_id": "plan.mode-unknown",
+      "description": "研究模式必須是 quick、standard、deep 或 ultradeep。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "plan.sub-questions-over-budget",
+      "description": "子問題數量不得超過該模式的 max_sub_questions。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "plan.language-unsupported",
+      "description": "輸出語言必須是已備妥章節標題的 zh-TW 或 en。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "workspace.outside-skill-root",
+      "description": "run_dir 不得落在 skill 資料夾內，避免技能持有可變狀態。",
+      "failure_action": "block"
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "包含 plan 物件與 plan_path 的結果。"
+  },
+  "result_policy": {
+    "validate_output_schema": true,
+    "sensitive_data_classes": [
+      "none"
+    ],
+    "redaction_rules": [
+      "移除任何 credential 或 token 類欄位後才回傳結果"
+    ],
+    "max_inline_bytes": 65536,
+    "overflow_action": "summarize"
+  },
+  "important_preconditions": [
+    "呼叫端已確認研究問題",
+    "已決定研究深度模式"
+  ],
+  "effects": {
+    "effect_classes": [
+      "read",
+      "write"
+    ],
+    "reads_input": true,
+    "creates_resource": true,
+    "modifies_input": false,
+    "external_write": false,
+    "destructive": false,
+    "data_egress": false,
+    "incurs_cost": false,
+    "privileged_access": false,
+    "requires_approval": false
+  },
+  "approval_policy": {
+    "mode": "not-required",
+    "scope": null,
+    "bind_to_target": false,
+    "bind_to_subject": true,
+    "expiry_required": false
+  },
+  "important_errors": [
+    "INVALID_ARGUMENT",
+    "SEMANTIC_VALIDATION_FAILED"
+  ]
+}

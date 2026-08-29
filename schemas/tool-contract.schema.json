@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LLM-facing selected tool contract",
+  "type": "object",
+  "required": ["id", "version", "description", "input_schema", "semantic_validations", "output", "result_policy", "important_preconditions", "effects", "approval_policy", "important_errors"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z][a-z0-9_]*$"},
+    "version": {"type": "string", "minLength": 1},
+    "description": {"type": "string", "minLength": 1},
+    "input_schema": {"type": "object"},
+    "semantic_validations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "description", "failure_action"],
+        "properties": {
+          "rule_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+          "description": {"type": "string", "minLength": 1},
+          "failure_action": {"enum": ["block", "ask", "handoff"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "output": {"type": "object"},
+    "result_policy": {
+      "type": "object",
+      "required": ["validate_output_schema", "sensitive_data_classes", "redaction_rules", "max_inline_bytes", "overflow_action"],
+      "properties": {
+        "validate_output_schema": {"const": true},
+        "sensitive_data_classes": {"type": "array", "uniqueItems": true, "items": {"enum": ["credential", "secret", "personal", "financial", "health", "legal", "internal", "none"]}},
+        "redaction_rules": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "max_inline_bytes": {"type": "integer", "minimum": 0},
+        "overflow_action": {"enum": ["truncate", "artifact", "summarize", "block"]}
+      },
+      "additionalProperties": false
+    },
+    "important_preconditions": {"type": "array", "items": {"type": "string"}},
+    "effects": {
+      "type": "object",
+      "required": ["effect_classes", "reads_input", "creates_resource", "modifies_input", "external_write", "destructive", "data_egress", "incurs_cost", "privileged_access", "requires_approval"],
+      "properties": {
+        "effect_classes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["read", "create", "modify", "delete", "send", "external-write", "data-egress", "incur-cost", "privileged"]}},
+        "reads_input": {"type": "boolean"},
+        "creates_resource": {"type": "boolean"},
+        "modifies_input": {"type": "boolean"},
+        "external_write": {"type": "boolean"},
+        "destructive": {"type": "boolean"},
+        "data_egress": {"type": "boolean"},
+        "incurs_cost": {"type": "boolean"},
+        "privileged_access": {"type": "boolean"},
+        "requires_approval": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "approval_policy": {
+      "type": "object",
+      "required": ["mode", "scope", "bind_to_target", "bind_to_subject", "expiry_required"],
+      "properties": {
+        "mode": {"enum": ["not-required", "required"]},
+        "scope": {"type": ["string", "null"]},
+        "bind_to_target": {"type": "boolean"},
+        "bind_to_subject": {"type": "boolean"},
+        "expiry_required": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "important_errors": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "effects": {
+            "anyOf": [
+              {"properties": {"external_write": {"const": true}}},
+              {"properties": {"destructive": {"const": true}}},
+              {"properties": {"data_egress": {"const": true}}},
+              {"properties": {"incurs_cost": {"const": true}}},
+              {"properties": {"privileged_access": {"const": true}}}
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "effects": {"properties": {"requires_approval": {"const": true}}},
+          "approval_policy": {"properties": {"mode": {"const": "required"}}}
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SkillOps Skill Contract",
+  "type": "object",
+  "required": ["name", "primary_job", "inputs", "outputs", "acceptance_gates"],
+  "properties": {
+    "name": {"type": "string", "minLength": 1},
+    "archetype": {"enum": ["router", "tool-executor", "executor", "ops", "utility"]},
+    "primary_job": {"type": "string", "minLength": 1},
+    "inputs": {"type": "array", "items": {"type": "string"}},
+    "outputs": {"type": "array", "items": {"type": "string"}},
+    "acceptance_gates": {"type": "array", "items": {"type": "string"}},
+    "handoff_to": {"type": "array", "items": {"type": "string"}},
+    "negative_triggers": {"type": "array", "items": {"type": "string"}},
+    "state_paths": {"type": "array", "items": {"type": "string"}},
+    "capability_chain": {
+      "type": "object",
+      "required": ["contract_version", "registry", "workflow_plan_schema", "workflow_run_schema", "handoff_schema", "authorization_schema", "state_owner", "terminal_artifacts", "planner_loop", "allows_parallel", "allows_fan_out_fan_in", "max_cycle_iterations"],
+      "properties": {
+        "contract_version": {"type": "string", "minLength": 1},
+        "registry": {"type": "string", "minLength": 1},
+        "workflow_plan_schema": {"type": "string", "minLength": 1},
+        "workflow_run_schema": {"type": "string", "minLength": 1},
+        "handoff_schema": {"type": "string", "minLength": 1},
+        "authorization_schema": {"type": "string", "minLength": 1},
+        "state_owner": {"type": "string", "minLength": 1},
+        "terminal_artifacts": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "planner_loop": {"const": ["plan", "execute", "validate", "commit-state", "replan"]},
+        "allows_parallel": {"type": "boolean"},
+        "allows_fan_out_fan_in": {"type": "boolean"},
+        "max_cycle_iterations": {"type": "integer", "minimum": 1, "maximum": 10}
+      },
+      "additionalProperties": false
+    },
+    "tool_execution": {
+      "type": "object",
+      "required": ["protocol_version", "execution_model", "language", "registry", "capability_source", "domain_policy", "expertise", "dependency_policy", "invocation", "observability"],
+      "properties": {
+        "protocol_version": {"type": "string", "minLength": 1},
+        "execution_model": {"const": "code-as-tool"},
+        "language": {"const": "python"},
+        "registry": {"type": "string", "minLength": 1},
+        "capability_source": {"const": "SKILL.md"},
+        "domain_policy": {
+          "type": "object",
+          "required": ["domain_id", "domain_summary", "supported_tasks", "out_of_scope", "access_mode", "allow_unlisted_tools", "out_of_domain_policy"],
+          "properties": {
+            "domain_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+            "domain_summary": {"type": "string", "minLength": 1},
+            "supported_tasks": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+            "out_of_scope": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+            "access_mode": {"const": "domain-allowlist"},
+            "allow_unlisted_tools": {"const": false},
+            "out_of_domain_policy": {"enum": ["reject", "handoff", "ask"]}
+          },
+          "additionalProperties": false
+        },
+        "expertise": {
+          "type": "object",
+          "required": ["source", "playbooks"],
+          "properties": {
+            "source": {"const": "SKILL.md"},
+            "playbooks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["id", "task", "allowed_tools", "selection_rules", "preconditions", "workflow", "execution_steps", "success_criteria", "fallbacks", "fallback_policy", "stop_conditions"],
+                "properties": {
+                  "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+                  "task": {"type": "string", "minLength": 1},
+                  "allowed_tools": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z][a-z0-9_]*$"}},
+                  "selection_rules": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "preconditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "workflow": {
+                    "type": "object",
+                    "required": ["steps"],
+                    "properties": {
+                      "steps": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "object",
+                          "required": ["id", "function_id", "depends_on"],
+                          "properties": {
+                            "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+                            "function_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z][a-z0-9_]*$"},
+                            "depends_on": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"}}
+                          },
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "execution_steps": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "success_criteria": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "fallbacks": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "fallback_policy": {
+                    "type": "object",
+                    "required": ["runtime_unavailable", "tool_failure", "success_validation_failure", "allowed_alternate_tools"],
+                    "properties": {
+                      "runtime_unavailable": {"enum": ["ask", "handoff", "stop"]},
+                      "tool_failure": {"enum": ["alternate-tool", "ask", "handoff", "stop"]},
+                      "success_validation_failure": {"enum": ["ask", "handoff", "stop"]},
+                      "allowed_alternate_tools": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z][a-z0-9_]*$"}}
+                    },
+                    "additionalProperties": false
+                  },
+                  "stop_conditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "dependency_policy": {
+          "type": "object",
+          "required": ["mode", "asset_root", "install_during_run", "network_install"],
+          "properties": {
+            "mode": {"const": "stdlib-or-assets"},
+            "asset_root": {"const": "assets/"},
+            "install_during_run": {"const": false},
+            "network_install": {"const": false}
+          },
+          "additionalProperties": false
+        },
+        "invocation": {
+          "type": "object",
+          "required": ["mode", "runner", "entrypoint_root", "path_resolution", "validate_arguments", "validate_semantics", "validate_effects", "enforce_approval", "enforce_result_policy", "capture_exit_code", "capture_stderr"],
+          "properties": {
+            "mode": {"const": "python-callable-json"},
+            "runner": {"const": "scripts/run_function.py"},
+            "entrypoint_root": {"const": "scripts/"},
+            "path_resolution": {"const": "script-relative"},
+            "validate_arguments": {"const": true},
+            "validate_semantics": {"const": true},
+            "validate_effects": {"const": true},
+            "enforce_approval": {"const": true},
+            "enforce_result_policy": {"const": true},
+            "capture_exit_code": {"const": true},
+            "capture_stderr": {"const": true}
+          },
+          "additionalProperties": false
+        },
+        "observability": {
+          "type": "object",
+          "required": ["trace_schema", "events"],
+          "properties": {
+            "trace_schema": {"type": "string", "minLength": 1},
+            "events": {
+              "type": "array",
+              "uniqueItems": true,
+              "allOf": [
+                {"contains": {"const": "select"}},
+                {"contains": {"const": "scope-check"}},
+                {"contains": {"const": "playbook-select"}},
+                {"contains": {"const": "load-contract"}},
+                {"contains": {"const": "validate-input"}},
+                {"contains": {"const": "resolve-entrypoint"}},
+                {"contains": {"const": "invoke-python"}},
+                {"contains": {"const": "validate-output"}}
+              ],
+              "items": {"enum": ["scope-check", "playbook-select", "select", "load-contract", "validate-input", "validate-semantics", "validate-effects", "approval", "resolve-entrypoint", "validate-python", "resolve-assets", "invoke-python", "validate-output", "redact", "artifact", "result"]}
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "routing": {
+      "type": "object",
+      "required": ["router_type", "architecture_pattern", "decision_signals", "strategy", "ambiguity_policy", "no_match_policy", "routes", "state", "observability", "eval_gates"],
+      "properties": {
+        "router_type": {"enum": ["orchestrator", "decision-router"]},
+        "architecture_pattern": {"enum": ["tool-wrapper", "specialist-handoff", "subgraph-workflow", "mcp-service", "event-driven"]},
+        "decision_signals": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["intent", "context", "risk", "capability", "authorization"]}
+        },
+        "strategy": {"enum": ["deterministic-table", "ranked-single", "handoff", "sequential", "fan-out-fan-in", "graph"]},
+        "ambiguity_policy": {"enum": ["ask", "safe-fallback", "escalate", "reject"]},
+        "no_match_policy": {"enum": ["ask", "safe-fallback", "escalate", "reject"]},
+        "routes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["id", "target", "when", "not_when", "input_contract", "output_contract", "effect_class", "approval_required", "final_output_owner"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "target": {"type": "string", "minLength": 1},
+              "when": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+              "not_when": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+              "input_contract": {"type": "string", "minLength": 1},
+              "output_contract": {"type": "string", "minLength": 1},
+              "effect_class": {"enum": ["none", "read-only", "reversible-write", "external-write", "destructive"]},
+              "approval_required": {"type": "boolean"},
+              "final_output_owner": {"type": "string", "minLength": 1}
+            },
+            "additionalProperties": false
+          }
+        },
+        "state": {
+          "type": "object",
+          "required": ["session_state", "durable_state", "approval_state", "state_owner", "checkpoint_resume"],
+          "properties": {
+            "session_state": {"type": "string", "minLength": 1},
+            "durable_state": {"type": "string", "minLength": 1},
+            "approval_state": {"type": "string", "minLength": 1},
+            "state_owner": {"type": "string", "minLength": 1},
+            "checkpoint_resume": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        },
+        "observability": {
+          "type": "object",
+          "required": ["trace_fields", "record_route_decision", "record_tool_events", "record_state_transitions", "record_approval_outcome"],
+          "properties": {
+            "trace_fields": {"type": "array", "minItems": 5, "uniqueItems": true, "items": {"type": "string"}},
+            "record_route_decision": {"const": true},
+            "record_tool_events": {"const": true},
+            "record_state_transitions": {"const": true},
+            "record_approval_outcome": {"const": true}
+          },
+          "additionalProperties": false
+        },
+        "eval_gates": {
+          "type": "object",
+          "required": ["min_activation_precision", "min_activation_recall", "min_tool_call_accuracy", "min_task_completion_rate", "max_approval_escape_rate"],
+          "properties": {
+            "min_activation_precision": {"type": "number", "minimum": 0, "maximum": 1},
+            "min_activation_recall": {"type": "number", "minimum": 0, "maximum": 1},
+            "min_tool_call_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
+            "min_task_completion_rate": {"type": "number", "minimum": 0, "maximum": 1},
+            "max_approval_escape_rate": {"type": "number", "minimum": 0, "maximum": 0}
+          },
+          "additionalProperties": false
+        },
+        "contract_version": {"type": "string"},
+        "workflow_topology_version": {"type": "string"},
+        "state_schema_version": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"archetype": {"const": "router"}},
+        "required": ["archetype"]
+      },
+      "then": {"required": ["routing", "capability_chain"]}
+    },
+    {
+      "if": {
+        "properties": {"archetype": {"const": "tool-executor"}},
+        "required": ["archetype"]
+      },
+      "then": {"required": ["tool_execution"]}
+    }
+  ],
+  "additionalProperties": false
+}

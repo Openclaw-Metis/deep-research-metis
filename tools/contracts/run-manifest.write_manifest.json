@@ -1,0 +1,141 @@
+{
+  "id": "run-manifest.write_manifest",
+  "version": "1.0.0",
+  "description": "以原子寫入更新 run_manifest.json，保留既有階段紀錄與產物 digest，讓中斷的研究可以續跑而不重跑已完成階段。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": {
+        "type": "string",
+        "description": "研究執行工作區的絕對或相對路徑，必須位於 skill 資料夾之外。"
+      },
+      "phase": {
+        "type": "string",
+        "enum": [
+          "plan",
+          "retrieval",
+          "evidence",
+          "drafting",
+          "verification",
+          "delivery"
+        ],
+        "description": "本次要記錄的階段。"
+      },
+      "phase_status": {
+        "type": "string",
+        "enum": [
+          "complete",
+          "partial",
+          "blocked"
+        ],
+        "description": "該階段的結果。"
+      },
+      "gate_results": {
+        "type": "array",
+        "description": "本階段實際執行的檢查結果。",
+        "items": {
+          "type": "object",
+          "properties": {
+            "gate": {
+              "type": "string",
+              "description": "檢查名稱。"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "BLOCKED",
+                "SKIPPED"
+              ],
+              "description": "檢查結果。"
+            },
+            "detail": {
+              "type": "string",
+              "description": "補充說明。"
+            }
+          },
+          "required": [
+            "gate",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "notes": {
+        "type": "string",
+        "description": "階段備註。"
+      },
+      "allow_downgrade": {
+        "type": "boolean",
+        "description": "是否允許把已完成階段降級。"
+      }
+    },
+    "required": [
+      "run_dir",
+      "phase"
+    ],
+    "additionalProperties": false
+  },
+  "semantic_validations": [
+    {
+      "rule_id": "manifest.phase-unknown",
+      "description": "階段名稱必須是已定義的六個階段之一。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "manifest.gate-status-invalid",
+      "description": "gate 結果必須是 PASS、FAIL、BLOCKED 或 SKIPPED。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "manifest.phase-downgrade-blocked",
+      "description": "已完成階段不得在未明示 allow_downgrade 時被降級。",
+      "failure_action": "block"
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "包含 manifest_path、run_id 與 phases 的更新結果。"
+  },
+  "result_policy": {
+    "validate_output_schema": true,
+    "sensitive_data_classes": [
+      "none"
+    ],
+    "redaction_rules": [
+      "移除任何 credential 或 token 類欄位後才回傳結果"
+    ],
+    "max_inline_bytes": 65536,
+    "overflow_action": "summarize"
+  },
+  "important_preconditions": [
+    "該階段的實際檢查已執行完畢"
+  ],
+  "effects": {
+    "effect_classes": [
+      "read",
+      "write"
+    ],
+    "reads_input": true,
+    "creates_resource": true,
+    "modifies_input": false,
+    "external_write": false,
+    "destructive": false,
+    "data_egress": false,
+    "incurs_cost": false,
+    "privileged_access": false,
+    "requires_approval": false
+  },
+  "approval_policy": {
+    "mode": "not-required",
+    "scope": null,
+    "bind_to_target": false,
+    "bind_to_subject": true,
+    "expiry_required": false
+  },
+  "important_errors": [
+    "INVALID_ARGUMENT",
+    "SEMANTIC_VALIDATION_FAILED"
+  ]
+}

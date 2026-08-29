@@ -1,0 +1,33 @@
+{
+  "tool_id": "report-verify.check_claim_support",
+  "function_group": "report-verify",
+  "function_name": "check_claim_support",
+  "runtime": "python",
+  "module": "scripts/report_verify.py",
+  "callable": "check_claim_support",
+  "compatible_contract_digest": "sha256:ff878b164b7d5ccdb234ef614ed412dd85ca84202aa801b6f18092e03b325544",
+  "python_requires": ">=3.9",
+  "invocation": "python-callable-json",
+  "path_resolution": "script-relative",
+  "dependencies": {
+    "policy": "stdlib-or-assets",
+    "install_during_run": false,
+    "network_install": false,
+    "asset_paths": [
+      "assets/lexicon"
+    ],
+    "third_party_imports": []
+  },
+  "timeout_seconds": 60,
+  "environment": {
+    "inherit_all": false,
+    "allowlist": [
+      "PATH",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "PYTHONUTF8",
+      "PYTHONIOENCODING"
+    ]
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "id": "report-render.render_html",
+  "version": "1.0.0",
+  "description": "以 Markdown 子集渲染自包含 HTML：所有文字跳脫、僅保留 http(s) 連結、引用標記連到書目錨點；覆寫既有檔案需要明確授權。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": {
+        "type": "string",
+        "description": "研究執行工作區的絕對或相對路徑，必須位於 skill 資料夾之外。"
+      },
+      "title": {
+        "type": "string",
+        "description": "HTML 文件標題。"
+      },
+      "report_markdown": {
+        "type": "string",
+        "description": "報告 Markdown 全文；與 report_path 擇一提供。"
+      },
+      "report_path": {
+        "type": "string",
+        "description": "工作區內的報告檔案路徑；與 report_markdown 擇一提供。"
+      },
+      "output_path": {
+        "type": "string",
+        "description": "工作區內的輸出檔名，必須以 .html 結尾。"
+      },
+      "language": {
+        "type": "string",
+        "enum": [
+          "zh-TW",
+          "en"
+        ],
+        "description": "HTML lang 屬性。"
+      },
+      "footer": {
+        "type": "string",
+        "description": "頁尾說明文字。"
+      },
+      "overwrite": {
+        "type": "boolean",
+        "description": "是否允許覆寫既有交付物。"
+      }
+    },
+    "required": [
+      "run_dir",
+      "title"
+    ],
+    "additionalProperties": false
+  },
+  "semantic_validations": [
+    {
+      "rule_id": "render.output-inside-workspace",
+      "description": "輸出路徑必須留在 run 工作區內。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "render.output-exists",
+      "description": "既有交付物不得在未取得 overwrite 授權時被替換。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "render.no-heading",
+      "description": "沒有任何標題的報告不得渲染成交付物。",
+      "failure_action": "block"
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "包含 output_path、bytes 與 self_contained 的渲染結果。"
+  },
+  "result_policy": {
+    "validate_output_schema": true,
+    "sensitive_data_classes": [
+      "none"
+    ],
+    "redaction_rules": [
+      "移除任何 credential 或 token 類欄位後才回傳結果"
+    ],
+    "max_inline_bytes": 65536,
+    "overflow_action": "summarize"
+  },
+  "important_preconditions": [
+    "結構、引用與支撐度檢查都已 PASS",
+    "已取得寫入交付物的 approval record"
+  ],
+  "effects": {
+    "effect_classes": [
+      "read",
+      "write",
+      "external-write"
+    ],
+    "reads_input": true,
+    "creates_resource": true,
+    "modifies_input": false,
+    "external_write": true,
+    "destructive": false,
+    "data_egress": false,
+    "incurs_cost": false,
+    "privileged_access": false,
+    "requires_approval": true
+  },
+  "approval_policy": {
+    "mode": "required",
+    "scope": "write-report-deliverable",
+    "bind_to_target": true,
+    "bind_to_subject": true,
+    "expiry_required": true
+  },
+  "important_errors": [
+    "INVALID_ARGUMENT",
+    "SEMANTIC_VALIDATION_FAILED",
+    "APPROVAL_REQUIRED"
+  ]
+}

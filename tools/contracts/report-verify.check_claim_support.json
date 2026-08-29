@@ -1,0 +1,100 @@
+{
+  "id": "report-verify.check_claim_support",
+  "version": "1.0.0",
+  "description": "讀取 claims、evidence 與 citation_map，對每個帶引用主張取最高重疊分數，分為 supported、partial、unsupported，並標記含數據卻未引用的主張。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": {
+        "type": "string",
+        "description": "研究執行工作區的絕對或相對路徑，必須位於 skill 資料夾之外。"
+      },
+      "strict": {
+        "type": "boolean",
+        "description": "是否把 unsupported 視為 error。"
+      },
+      "require_cross_language_anchor": {
+        "type": "boolean",
+        "description": "是否把沒有數字或專有名詞錨點的跨語言主張視為 error。"
+      },
+      "supported_threshold": {
+        "type": "number",
+        "description": "判定 supported 的最低重疊分數。"
+      },
+      "partial_threshold": {
+        "type": "number",
+        "description": "判定 partial 的最低重疊分數。"
+      }
+    },
+    "required": [
+      "run_dir"
+    ],
+    "additionalProperties": false
+  },
+  "semantic_validations": [
+    {
+      "rule_id": "support.claims-missing",
+      "description": "必須先抽取主張才能評分。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "support.evidence-missing",
+      "description": "必須先持久化證據才能評分。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "support.citation-map-missing",
+      "description": "必須先執行引用檢查產生對應表。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "support.threshold-invalid",
+      "description": "門檻必須滿足 0 < partial < supported <= 1。",
+      "failure_action": "block"
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "包含 summary、逐筆 claims 判定與 findings 的支撐度結果。"
+  },
+  "result_policy": {
+    "validate_output_schema": true,
+    "sensitive_data_classes": [
+      "none"
+    ],
+    "redaction_rules": [
+      "移除任何 credential 或 token 類欄位後才回傳結果"
+    ],
+    "max_inline_bytes": 65536,
+    "overflow_action": "summarize"
+  },
+  "important_preconditions": [
+    "claims.jsonl、evidence.jsonl 與 citation_map.json 都已存在"
+  ],
+  "effects": {
+    "effect_classes": [
+      "read",
+      "write"
+    ],
+    "reads_input": true,
+    "creates_resource": true,
+    "modifies_input": false,
+    "external_write": false,
+    "destructive": false,
+    "data_egress": false,
+    "incurs_cost": false,
+    "privileged_access": false,
+    "requires_approval": false
+  },
+  "approval_policy": {
+    "mode": "not-required",
+    "scope": null,
+    "bind_to_target": false,
+    "bind_to_subject": true,
+    "expiry_required": false
+  },
+  "important_errors": [
+    "INVALID_ARGUMENT",
+    "SEMANTIC_VALIDATION_FAILED"
+  ]
+}

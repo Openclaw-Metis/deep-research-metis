@@ -1,0 +1,115 @@
+{
+  "id": "evidence-store.append_evidence",
+  "version": "1.0.0",
+  "description": "驗證 source_id 已登錄、引文長度合理且未重複後，寫入 evidence.jsonl；既有證據永不改寫。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": {
+        "type": "string",
+        "description": "研究執行工作區的絕對或相對路徑，必須位於 skill 資料夾之外。"
+      },
+      "evidence": {
+        "type": "array",
+        "description": "待持久化的證據引文。",
+        "items": {
+          "type": "object",
+          "properties": {
+            "source_id": {
+              "type": "string",
+              "description": "已登錄來源的 source_id。"
+            },
+            "quote": {
+              "type": "string",
+              "description": "來源中的逐字引文。"
+            },
+            "locator": {
+              "type": "string",
+              "description": "頁碼、段落或時間碼等定位資訊。"
+            },
+            "note": {
+              "type": "string",
+              "description": "取用理由或補充說明。"
+            },
+            "retrieved_at": {
+              "type": "string",
+              "description": "取得引文的時間。"
+            }
+          },
+          "required": [
+            "source_id",
+            "quote"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "run_dir",
+      "evidence"
+    ],
+    "additionalProperties": false
+  },
+  "semantic_validations": [
+    {
+      "rule_id": "evidence.sources-not-registered",
+      "description": "必須先登錄來源才能寫入證據。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "evidence.source-unknown",
+      "description": "證據的 source_id 必須存在於來源帳本。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "workspace.outside-skill-root",
+      "description": "證據帳本只能寫入 skill 外的工作區。",
+      "failure_action": "block"
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "包含 appended、rejected 與 counts 的持久化結果。"
+  },
+  "result_policy": {
+    "validate_output_schema": true,
+    "sensitive_data_classes": [
+      "none"
+    ],
+    "redaction_rules": [
+      "移除任何 credential 或 token 類欄位後才回傳結果"
+    ],
+    "max_inline_bytes": 65536,
+    "overflow_action": "summarize"
+  },
+  "important_preconditions": [
+    "來源已完成登錄",
+    "引文為來源原文而非改寫"
+  ],
+  "effects": {
+    "effect_classes": [
+      "read",
+      "write"
+    ],
+    "reads_input": true,
+    "creates_resource": true,
+    "modifies_input": false,
+    "external_write": false,
+    "destructive": false,
+    "data_egress": false,
+    "incurs_cost": false,
+    "privileged_access": false,
+    "requires_approval": false
+  },
+  "approval_policy": {
+    "mode": "not-required",
+    "scope": null,
+    "bind_to_target": false,
+    "bind_to_subject": true,
+    "expiry_required": false
+  },
+  "important_errors": [
+    "INVALID_ARGUMENT",
+    "SEMANTIC_VALIDATION_FAILED"
+  ]
+}

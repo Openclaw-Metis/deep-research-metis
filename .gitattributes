@@ -1,0 +1,4 @@
+# Function contracts and Python modules are pinned by sha256 digests in
+# tools/registry.json. Any end-of-line conversion would change those bytes and
+# make every digest check fail on checkout, so no file is text-normalised.
+* -text

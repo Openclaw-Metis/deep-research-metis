@@ -1,0 +1,31 @@
+{
+  "tool_id": "report-render.render_html",
+  "function_group": "report-render",
+  "function_name": "render_html",
+  "runtime": "python",
+  "module": "scripts/report_render.py",
+  "callable": "render_html",
+  "compatible_contract_digest": "sha256:d4b9539e111e01f0254d3916ed63e8c969f9b28819c718db539e874876affb59",
+  "python_requires": ">=3.9",
+  "invocation": "python-callable-json",
+  "path_resolution": "script-relative",
+  "dependencies": {
+    "policy": "stdlib-or-assets",
+    "install_during_run": false,
+    "network_install": false,
+    "asset_paths": [],
+    "third_party_imports": []
+  },
+  "timeout_seconds": 60,
+  "environment": {
+    "inherit_all": false,
+    "allowlist": [
+      "PATH",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "PYTHONUTF8",
+      "PYTHONIOENCODING"
+    ]
+  }
+}

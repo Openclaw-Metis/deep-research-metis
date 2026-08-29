@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Python Code as Tool runtime metadata",
+  "type": "object",
+  "required": ["tool_id", "function_group", "function_name", "runtime", "module", "callable", "compatible_contract_digest", "python_requires", "invocation", "path_resolution", "dependencies", "timeout_seconds", "environment"],
+  "properties": {
+    "tool_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z][a-z0-9_]*$"},
+    "function_group": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "function_name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "runtime": {"const": "python"},
+    "module": {"type": "string", "pattern": "^scripts/(?:[^/]+/)*[^/]+\\.py$"},
+    "callable": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+    "compatible_contract_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "python_requires": {"type": "string", "pattern": "^>=3\\.[0-9]+$"},
+    "invocation": {"const": "python-callable-json"},
+    "path_resolution": {"const": "script-relative"},
+    "dependencies": {
+      "type": "object",
+      "required": ["policy", "install_during_run", "network_install", "asset_paths", "third_party_imports"],
+      "properties": {
+        "policy": {"const": "stdlib-or-assets"},
+        "install_during_run": {"const": false},
+        "network_install": {"const": false},
+        "asset_paths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^assets/(?:[^/]+/?)*$"}},
+        "third_party_imports": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"}}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"third_party_imports": {"minItems": 1}}},
+          "then": {"properties": {"asset_paths": {"minItems": 1}}}
+        }
+      ],
+      "additionalProperties": false
+    },
+    "timeout_seconds": {"type": "integer", "minimum": 1},
+    "environment": {
+      "type": "object",
+      "required": ["inherit_all", "allowlist"],
+      "properties": {
+        "inherit_all": {"const": false},
+        "allowlist": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

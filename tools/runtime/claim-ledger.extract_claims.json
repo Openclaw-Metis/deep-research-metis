@@ -1,0 +1,33 @@
+{
+  "tool_id": "claim-ledger.extract_claims",
+  "function_group": "claim-ledger",
+  "function_name": "extract_claims",
+  "runtime": "python",
+  "module": "scripts/claim_ledger.py",
+  "callable": "extract_claims",
+  "compatible_contract_digest": "sha256:d02e2373cc03e58ed93c51aba8e1e7fa2e3b0efae978de007b2a2e38b930aee0",
+  "python_requires": ">=3.9",
+  "invocation": "python-callable-json",
+  "path_resolution": "script-relative",
+  "dependencies": {
+    "policy": "stdlib-or-assets",
+    "install_during_run": false,
+    "network_install": false,
+    "asset_paths": [
+      "assets/lexicon"
+    ],
+    "third_party_imports": []
+  },
+  "timeout_seconds": 60,
+  "environment": {
+    "inherit_all": false,
+    "allowlist": [
+      "PATH",
+      "SYSTEMROOT",
+      "TEMP",
+      "TMP",
+      "PYTHONUTF8",
+      "PYTHONIOENCODING"
+    ]
+  }
+}

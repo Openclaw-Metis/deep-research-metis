@@ -1,0 +1,200 @@
+{
+  "skill_name": "deep-research-metis",
+  "benchmark_metadata_required": [
+    "skill_version",
+    "git_commit",
+    "host",
+    "model",
+    "temperature",
+    "run_timestamp",
+    "grader_version"
+  ],
+  "evals": [
+    {
+      "id": 1,
+      "name": "zh-full-report-direct",
+      "type": "trigger",
+      "language": "zh",
+      "trigger_class": "direct",
+      "coverage_tags": ["should-trigger", "happy-path"],
+      "prompt": "幫我做一份台灣資料中心用電趨勢的深度研究報告，每個數字都要能追到來源。",
+      "expected_output": "選用 full-research-report playbook，先 build_plan 再依序登錄來源、持久化證據、抽取主張並執行三項驗證。",
+      "files": [],
+      "expectations": [
+        "回應中出現 research-plan.build_plan 作為第一個函數",
+        "在渲染 HTML 前先完成 check_structure、check_citations 與 check_claim_support",
+        "說明 run_dir 必須位於 skill 資料夾之外"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "en-comparison-report-direct",
+      "type": "trigger",
+      "language": "en",
+      "trigger_class": "direct",
+      "coverage_tags": ["should-trigger", "happy-path"],
+      "prompt": "Produce a cited research report comparing grid-scale battery storage vendors for our 2027 procurement decision.",
+      "expected_output": "採用 full-research-report playbook，language 設為 en，並使用英文章節標題別名。",
+      "files": [],
+      "expectations": [
+        "build_plan 的 language 參數為 en",
+        "必要章節以英文標題輸出",
+        "每個事實主張都帶行內引用"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "mixed-verification-only",
+      "type": "trigger",
+      "language": "mixed",
+      "trigger_class": "indirect",
+      "coverage_tags": ["should-trigger", "overlap-neighbor"],
+      "prompt": "這份 draft 我已經寫完了，可以幫我 check 一下 citation 有沒有對應到 evidence 嗎？",
+      "expected_output": "改用 report-verification playbook，只執行抽取與三項檢查，不重新產出報告。",
+      "files": ["report.md"],
+      "expectations": [
+        "選用 report-verification 而非 full-research-report",
+        "不呼叫 report-render.render_html",
+        "回報 finding 時附上 claim_id 或書目編號"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "zh-evidence-intake-indirect",
+      "type": "trigger",
+      "language": "zh",
+      "trigger_class": "indirect",
+      "coverage_tags": ["should-trigger", "edge-case"],
+      "prompt": "我還沒要寫報告，先把這十幾個資料來源和重點引文整理成可以追溯的底稿。",
+      "expected_output": "採用 evidence-intake playbook，只登錄來源與證據並記錄 manifest。",
+      "files": [],
+      "expectations": [
+        "只使用 build_plan、register_sources、append_evidence 與 write_manifest",
+        "不執行任何驗證函數",
+        "manifest 的 evidence 階段狀態如實記錄 complete 或 partial"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "zh-single-lookup-negative",
+      "type": "trigger",
+      "language": "zh",
+      "trigger_class": "negative",
+      "coverage_tags": ["should-not-trigger", "near-miss"],
+      "prompt": "台積電最新一季的營收是多少？",
+      "expected_output": "不啟用本 skill，交回 host 的一般網頁檢索流程並直接回答。",
+      "files": [],
+      "expectations": [
+        "不建立 run_dir 或任何帳本",
+        "明確說明這是單次查詢而非多來源研究"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "en-single-document-summary-negative",
+      "type": "trigger",
+      "language": "en",
+      "trigger_class": "negative",
+      "coverage_tags": ["should-not-trigger", "near-miss"],
+      "prompt": "Summarise this PDF I just uploaded in five bullet points.",
+      "expected_output": "不啟用本 skill；單一文件摘要屬於 out_of_scope，直接摘要即可。",
+      "files": ["whitepaper.pdf"],
+      "expectations": [
+        "不初始化研究執行工作區",
+        "說明單一文件摘要不需要證據帳本"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "mixed-slide-deck-negative",
+      "type": "trigger",
+      "language": "mixed",
+      "trigger_class": "negative",
+      "coverage_tags": ["should-not-trigger", "overlap-neighbor"],
+      "prompt": "研究做完了，幫我把結論做成 slide deck。",
+      "expected_output": "領域檢查即停止並交棒給簡報製作流程。",
+      "files": [],
+      "expectations": [
+        "回應中出現 out-of-domain 的判斷",
+        "不呼叫任何 registry 函數"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "zh-cjk-claim-support-functional",
+      "type": "functional",
+      "language": "zh",
+      "trigger_class": "direct",
+      "coverage_tags": ["happy-path", "edge-case"],
+      "prompt": "報告是繁體中文，但引用的是英文原始報告，請確認主張是否有證據支撐。",
+      "expected_output": "check_claim_support 以 cross-script-anchor 方法評分，沒有數字或專有名詞可比對時判為 unverifiable 並提出補證建議。",
+      "files": ["report.md", "evidence.jsonl"],
+      "expectations": [
+        "跨語言主張不會被一律判為 unsupported",
+        "unverifiable 主張附帶可執行的補證建議",
+        "summary 回報 cross_script_scored 數量"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "zh-missing-section-failure",
+      "type": "functional",
+      "language": "zh",
+      "trigger_class": "direct",
+      "coverage_tags": ["failure-mode"],
+      "prompt": "這份報告沒有限制章節，可以直接交付嗎？",
+      "expected_output": "check_structure 回報 section_missing 並判定 FAIL，交付流程停止。",
+      "files": ["report.md"],
+      "expectations": [
+        "finding 指出缺少的章節 key 與可接受別名",
+        "不因為其他檢查 PASS 就宣稱可交付"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "en-unregistered-source-failure",
+      "type": "functional",
+      "language": "en",
+      "trigger_class": "direct",
+      "coverage_tags": ["failure-mode"],
+      "prompt": "The bibliography has an entry I added by hand; verify the citation chain.",
+      "expected_output": "check_citations 回報 source_not_registered 並判定 FAIL，要求先登錄來源。",
+      "files": ["report.md"],
+      "expectations": [
+        "finding 指出未登錄的書目編號與網址",
+        "建議先執行 register_sources 而不是放寬檢查"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "mixed-approval-denied-render",
+      "type": "functional",
+      "language": "mixed",
+      "trigger_class": "direct",
+      "coverage_tags": ["failure-mode", "edge-case"],
+      "prompt": "驗證都過了，直接 render 成 HTML 交付吧。",
+      "expected_output": "缺少 approval record 時 render_html 被擋下，回傳 approval_denied 並說明需要的授權欄位。",
+      "files": [],
+      "expectations": [
+        "不寫出任何 HTML 檔案",
+        "說明 approval record 需要 decision、granted_by、granted_at、scope 與 target"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "zh-resume-after-interrupt",
+      "type": "functional",
+      "language": "zh",
+      "trigger_class": "indirect",
+      "coverage_tags": ["edge-case", "happy-path"],
+      "prompt": "昨天那個研究跑到一半中斷了，接著做完。",
+      "expected_output": "讀取 run_manifest.json 後只重跑未完成階段，已完成階段不重複執行。",
+      "files": ["run_manifest.json"],
+      "expectations": [
+        "先讀 manifest 再決定要跑哪些函數",
+        "不覆寫既有的 sources.jsonl 與 evidence.jsonl",
+        "已完成階段不被降級，除非明示 allow_downgrade"
+      ]
+    }
+  ]
+}

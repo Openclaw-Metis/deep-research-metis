@@ -1,0 +1,246 @@
+{
+  "schema_version": "1.0.0",
+  "description": "deep-research-metis 的 Code as Tool 決定性軌跡。每個案例描述 agent 端從領域檢查、playbook 選擇到 runner 回傳的完整事件序列；guard 事件對應 scripts/run_function.py 實際輸出的 events 欄位。",
+  "cases": [
+    {
+      "id": "trace-full-report-happy-path",
+      "scenario": "happy-path",
+      "domain_id": "deep-research-report",
+      "playbook_id": "full-research-report",
+      "workflow_functions": [
+        "research-plan.build_plan",
+        "source-ledger.register_sources",
+        "evidence-store.append_evidence",
+        "claim-ledger.extract_claims",
+        "report-verify.check_structure",
+        "report-verify.check_citations",
+        "report-verify.check_claim_support",
+        "report-render.render_html",
+        "run-manifest.write_manifest"
+      ],
+      "request": "把這份台灣資料中心用電研究做成有引用的完整報告",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "validate-semantics",
+        "validate-effects",
+        "approval",
+        "resolve-entrypoint",
+        "validate-python",
+        "resolve-assets",
+        "invoke-python",
+        "validate-output",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "expected_artifacts": ["sources.jsonl", "evidence.jsonl", "claims.jsonl", "citation_map.json", "claim_support.json", "run_manifest.json"],
+      "notes": "驗證必須在 invoke-python 之前完成，輸出驗證必須在其之後。"
+    },
+    {
+      "id": "trace-out-of-domain-slide-deck",
+      "scenario": "out-of-domain",
+      "domain_id": "deep-research-report",
+      "playbook_id": null,
+      "request": "幫我把這份研究做成 20 頁簡報",
+      "events": ["scope-check"],
+      "expected_status": "BLOCKED",
+      "expected_action": "handoff",
+      "notes": "簡報製作在 out_of_scope 清單內，領域檢查即停止，不進入 playbook 選擇。"
+    },
+    {
+      "id": "trace-unlisted-function",
+      "scenario": "unlisted-function",
+      "domain_id": "deep-research-report",
+      "playbook_id": "report-verification",
+      "request": "直接呼叫 report-verify.check_everything 一次檢查全部",
+      "events": ["scope-check", "playbook-select", "select"],
+      "expected_status": "BLOCKED",
+      "expected_error_code": "unlisted_function",
+      "notes": "registry 沒有這個 function ID，runner 在載入 contract 前就拒絕。"
+    },
+    {
+      "id": "trace-invalid-arguments-mode",
+      "scenario": "invalid-arguments",
+      "domain_id": "deep-research-report",
+      "playbook_id": "full-research-report",
+      "request": "用 turbo 模式建立研究計畫",
+      "events": ["scope-check", "playbook-select", "select", "load-contract", "validate-input"],
+      "expected_status": "BLOCKED",
+      "expected_error_code": "invalid_arguments",
+      "notes": "mode 不在 enum 內，input schema 驗證即擋下，不會呼叫 Python。"
+    },
+    {
+      "id": "trace-approval-denied-render",
+      "scenario": "approval-denied",
+      "domain_id": "deep-research-report",
+      "playbook_id": "full-research-report",
+      "request": "直接把報告輸出成 HTML 交付物",
+      "events": ["scope-check", "playbook-select", "select", "load-contract", "validate-input", "validate-effects", "approval"],
+      "expected_status": "BLOCKED",
+      "expected_error_code": "approval_denied",
+      "notes": "render_html 宣告 external_write 與 requires_approval，缺少 approval record 時在呼叫前停止。"
+    },
+    {
+      "id": "trace-semantic-validation-unknown-source",
+      "scenario": "semantic-validation-failure",
+      "domain_id": "deep-research-report",
+      "playbook_id": "evidence-intake",
+      "request": "把這段引文寫進尚未登錄的來源",
+      "events": ["scope-check", "playbook-select", "select", "load-contract", "validate-input", "validate-semantics"],
+      "expected_status": "BLOCKED",
+      "failed_rule_id": "evidence.source-unknown",
+      "notes": "schema 合法但違反領域不變量，回傳 failed_rule_id 供呼叫端修正。"
+    },
+    {
+      "id": "trace-expert-validation-failure-unsupported-claim",
+      "scenario": "expert-validation-failure",
+      "domain_id": "deep-research-report",
+      "playbook_id": "report-verification",
+      "request": "報告已完成，請確認可以交付",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "resolve-assets",
+        "invoke-python",
+        "validate-output"
+      ],
+      "expected_status": "FAILED",
+      "expected_error_code": "claim_unsupported",
+      "notes": "函數成功執行但業務成功條件未達成：仍有 unsupported 主張，playbook 的 success_criteria 判定失敗，不得宣稱可交付。"
+    },
+    {
+      "id": "trace-output-redaction-source-credential",
+      "scenario": "output-redaction",
+      "domain_id": "deep-research-report",
+      "playbook_id": "evidence-intake",
+      "request": "登錄這個帶 api_key 的資料 API 來源",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "invoke-python",
+        "validate-output",
+        "redact",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "redaction_applied": true,
+      "redacted_fields": ["url.api_key"],
+      "notes": "來源網址中的 credential 參數在正規化時移除，帳本與書目都不會保留金鑰。"
+    },
+    {
+      "id": "trace-python-only-runtime",
+      "scenario": "python-only",
+      "domain_id": "deep-research-report",
+      "playbook_id": "full-research-report",
+      "request": "用內建的 shell script 快速跑驗證",
+      "events": ["scope-check", "playbook-select", "select", "load-contract", "validate-python"],
+      "expected_status": "BLOCKED",
+      "runtime_language": "python",
+      "non_python_entrypoints": [],
+      "notes": "scripts/ 只有 Python 入口，非 Python 執行面不存在也不被接受。"
+    },
+    {
+      "id": "trace-asset-dependency-lexicon",
+      "scenario": "asset-dependency",
+      "domain_id": "deep-research-report",
+      "playbook_id": "report-verification",
+      "request": "檢查這份繁體中文報告的章節是否齊全",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "resolve-assets",
+        "invoke-python",
+        "validate-output",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "dependency_source": "assets",
+      "asset_paths": ["assets/lexicon/section_aliases.json"],
+      "notes": "章節別名表是隨 Skill 交付的資料資產，執行期間以 script-relative 路徑載入，不下載也不安裝任何套件。"
+    },
+    {
+      "id": "trace-workflow-composition-verification",
+      "scenario": "workflow-composition",
+      "domain_id": "deep-research-report",
+      "playbook_id": "report-verification",
+      "request": "稽核這份報告的引用鏈與主張支撐度",
+      "workflow_functions": [
+        "claim-ledger.extract_claims",
+        "report-verify.check_structure",
+        "report-verify.check_citations",
+        "report-verify.check_claim_support",
+        "run-manifest.write_manifest"
+      ],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "invoke-python",
+        "validate-output",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "notes": "check_claim_support 依賴 check_citations 產生的 citation_map.json，因此 workflow 的 depends_on 必須維持這個順序。"
+    },
+    {
+      "id": "trace-cwd-independent-invocation",
+      "scenario": "cwd-independent",
+      "domain_id": "deep-research-report",
+      "playbook_id": "report-verification",
+      "request": "從其他資料夾執行同一組驗證",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "resolve-assets",
+        "invoke-python",
+        "validate-output",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "path_resolution": "script-relative",
+      "notes": "registry、contract、module 與 lexicon 都以 __file__ 為基準解析；run_dir 則由呼叫端明示。"
+    },
+    {
+      "id": "trace-function-failure-corrupt-ledger",
+      "scenario": "function-failure",
+      "domain_id": "deep-research-report",
+      "playbook_id": "report-verification",
+      "request": "在 evidence.jsonl 損毀的情況下評分支撐度",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "resolve-assets",
+        "invoke-python"
+      ],
+      "expected_status": "FAILED",
+      "expected_error_code": "function_failed",
+      "notes": "JSONL 解析例外會讓 runner 以 exit code 2 回傳 FAILED envelope，不會產生 result 事件，也不會寫出半成品評分。"
+    }
+  ]
+}

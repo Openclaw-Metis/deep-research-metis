@@ -1,0 +1,156 @@
+{
+  "schema_version": "1.0.0",
+  "registry_version": "2026.8.29",
+  "skill_id": "deep-research-metis",
+  "domain_scope": {
+    "domain_id": "deep-research-report",
+    "access_mode": "domain-allowlist",
+    "allow_unlisted_tools": false
+  },
+  "tools": [
+    {
+      "id": "research-plan.build_plan",
+      "function_group": "research-plan",
+      "version": "1.0.0",
+      "summary": "把研究問題與子問題固定成含檢索預算、必要章節與停止條件的 run plan。",
+      "playbook_ids": [
+        "full-research-report",
+        "evidence-intake"
+      ],
+      "contract_ref": "tools/contracts/research-plan.build_plan.json",
+      "contract_digest": "sha256:8ae4bc6c8830504e21bd31b7ea9c8da87b8585493fc85be154aa0e5b37fe67c7",
+      "runtime_ref": "tools/runtime/research-plan.build_plan.json",
+      "code_digest": "sha256:95f917d047e281d571847ac0a976d434324659eb1421b42ae7d9cc3a669327f4",
+      "status": "active",
+      "replaced_by": null
+    },
+    {
+      "id": "source-ledger.register_sources",
+      "function_group": "source-ledger",
+      "version": "1.0.0",
+      "summary": "正規化來源網址、指派穩定 source_id、合併重複並記錄諮詢性權威訊號。",
+      "playbook_ids": [
+        "full-research-report",
+        "evidence-intake"
+      ],
+      "contract_ref": "tools/contracts/source-ledger.register_sources.json",
+      "contract_digest": "sha256:f835c6fced0d57cbdfdb53b01b21c901a5094f4703ee821e61f2bb717a6ec1bb",
+      "runtime_ref": "tools/runtime/source-ledger.register_sources.json",
+      "code_digest": "sha256:345c068fc6bea82de2aa8ff9b150b09def824e5b596103550d07d9ab5260327b",
+      "status": "active",
+      "replaced_by": null
+    },
+    {
+      "id": "evidence-store.append_evidence",
+      "function_group": "evidence-store",
+      "version": "1.0.0",
+      "summary": "把逐字引文綁定到已登錄來源並以 append-only 方式持久化。",
+      "playbook_ids": [
+        "full-research-report",
+        "evidence-intake"
+      ],
+      "contract_ref": "tools/contracts/evidence-store.append_evidence.json",
+      "contract_digest": "sha256:4e01d7c518f45ef2ff33e64e452077628abfd3e445abbbda1f4b2601e33ebcf3",
+      "runtime_ref": "tools/runtime/evidence-store.append_evidence.json",
+      "code_digest": "sha256:6eecc576b5480f4687467d7044866d42e05827ca59048101810852922ad318c7",
+      "status": "active",
+      "replaced_by": null
+    },
+    {
+      "id": "claim-ledger.extract_claims",
+      "function_group": "claim-ledger",
+      "version": "1.0.0",
+      "summary": "以中英文共用規則切分報告句子，抽出主張、章節與引用編號。",
+      "playbook_ids": [
+        "full-research-report",
+        "report-verification"
+      ],
+      "contract_ref": "tools/contracts/claim-ledger.extract_claims.json",
+      "contract_digest": "sha256:d02e2373cc03e58ed93c51aba8e1e7fa2e3b0efae978de007b2a2e38b930aee0",
+      "runtime_ref": "tools/runtime/claim-ledger.extract_claims.json",
+      "code_digest": "sha256:487b373b65fdd5ec9546fdb3324cbd1e81e1462dee76853b6506932690a0eb6a",
+      "status": "active",
+      "replaced_by": null
+    },
+    {
+      "id": "report-verify.check_structure",
+      "function_group": "report-verify",
+      "version": "1.0.0",
+      "summary": "檢查必要章節、雙語標題、佔位字串與雙語長度下限。",
+      "playbook_ids": [
+        "full-research-report",
+        "report-verification"
+      ],
+      "contract_ref": "tools/contracts/report-verify.check_structure.json",
+      "contract_digest": "sha256:ea7a3b2c0ff0f663554cc083f90d45d28473be53454da1982b1c4549c8284f14",
+      "runtime_ref": "tools/runtime/report-verify.check_structure.json",
+      "code_digest": "sha256:5409e524a57651d58a2c640c33f2b99aa2b0d7ce3e92d20a49e1f6460668e89a",
+      "status": "active",
+      "replaced_by": null
+    },
+    {
+      "id": "report-verify.check_citations",
+      "function_group": "report-verify",
+      "version": "1.0.0",
+      "summary": "比對行內引用、書目條目與來源帳本，產生引用對應表。",
+      "playbook_ids": [
+        "full-research-report",
+        "report-verification"
+      ],
+      "contract_ref": "tools/contracts/report-verify.check_citations.json",
+      "contract_digest": "sha256:38e97e28a6c464d16ecd0a0801ecd60d837df1f84a6c26a879b2227a7a7a6d9a",
+      "runtime_ref": "tools/runtime/report-verify.check_citations.json",
+      "code_digest": "sha256:5409e524a57651d58a2c640c33f2b99aa2b0d7ce3e92d20a49e1f6460668e89a",
+      "status": "active",
+      "replaced_by": null
+    },
+    {
+      "id": "report-verify.check_claim_support",
+      "function_group": "report-verify",
+      "version": "1.0.0",
+      "summary": "以拉丁詞與 CJK bigram 雙軌評分每個帶引用主張的證據支撐度。",
+      "playbook_ids": [
+        "full-research-report",
+        "report-verification"
+      ],
+      "contract_ref": "tools/contracts/report-verify.check_claim_support.json",
+      "contract_digest": "sha256:ff878b164b7d5ccdb234ef614ed412dd85ca84202aa801b6f18092e03b325544",
+      "runtime_ref": "tools/runtime/report-verify.check_claim_support.json",
+      "code_digest": "sha256:5409e524a57651d58a2c640c33f2b99aa2b0d7ce3e92d20a49e1f6460668e89a",
+      "status": "active",
+      "replaced_by": null
+    },
+    {
+      "id": "report-render.render_html",
+      "function_group": "report-render",
+      "version": "1.0.0",
+      "summary": "把通過驗證的報告轉成單檔、全跳脫、無外部資源的 HTML 交付物。",
+      "playbook_ids": [
+        "full-research-report"
+      ],
+      "contract_ref": "tools/contracts/report-render.render_html.json",
+      "contract_digest": "sha256:d4b9539e111e01f0254d3916ed63e8c969f9b28819c718db539e874876affb59",
+      "runtime_ref": "tools/runtime/report-render.render_html.json",
+      "code_digest": "sha256:497135dda5fa4cff05a5814f187b21b3273725d1e148571d492d1ea2588e4589",
+      "status": "active",
+      "replaced_by": null
+    },
+    {
+      "id": "run-manifest.write_manifest",
+      "function_group": "run-manifest",
+      "version": "1.0.0",
+      "summary": "合併階段狀態、gate 結果與產物摘要，維持可續跑的 run manifest。",
+      "playbook_ids": [
+        "full-research-report",
+        "report-verification",
+        "evidence-intake"
+      ],
+      "contract_ref": "tools/contracts/run-manifest.write_manifest.json",
+      "contract_digest": "sha256:b635bca0e8d5cc8adc9afe750c86cede61dc28192bf359fbb0b0b5d45ba2641e",
+      "runtime_ref": "tools/runtime/run-manifest.write_manifest.json",
+      "code_digest": "sha256:328c03fb964a1084e97fe779ed13de41c37e443a668dbf0242ae76b7621a8357",
+      "status": "active",
+      "replaced_by": null
+    }
+  ]
+}

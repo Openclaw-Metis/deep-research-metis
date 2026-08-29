@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "description": "報告章節的中英文別名表。驗證函數以此比對標題，因此 zh-TW 報告可以寫成「## Executive Summary 執行摘要」或「## 執行摘要」而不被判為缺章節。",
+  "sections": {
+    "executive-summary": ["executive summary", "執行摘要", "摘要"],
+    "introduction": ["introduction", "研究背景", "前言", "問題定義"],
+    "findings": ["findings", "主要發現", "發現"],
+    "analysis": ["analysis", "分析", "判讀", "交叉比對"],
+    "limitations": ["limitations", "限制", "注意事項"],
+    "methodology": ["methodology", "方法", "檢索紀錄"],
+    "bibliography": ["bibliography", "參考來源", "參考文獻", "資料來源"]
+  },
+  "placeholder_markers": ["TODO", "TBD", "FIXME", "XXX", "待補", "待填", "待確認"]
+}

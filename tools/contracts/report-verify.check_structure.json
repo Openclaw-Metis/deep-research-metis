@@ -1,0 +1,90 @@
+{
+  "id": "report-verify.check_structure",
+  "version": "1.0.0",
+  "description": "以中英文別名比對章節標題，偵測 TODO 類佔位字串，並以 CJK 字元加拉丁詞的方式計算報告長度。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "run_dir": {
+        "type": "string",
+        "description": "研究執行工作區的絕對或相對路徑，必須位於 skill 資料夾之外。"
+      },
+      "report_markdown": {
+        "type": "string",
+        "description": "報告 Markdown 全文；與 report_path 擇一提供。"
+      },
+      "report_path": {
+        "type": "string",
+        "description": "工作區內的報告檔案路徑；與 report_markdown 擇一提供。"
+      },
+      "required_sections": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "需要檢查的章節 key 清單。"
+      },
+      "min_length": {
+        "type": "integer",
+        "description": "報告的最小雙語長度。"
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "semantic_validations": [
+    {
+      "rule_id": "structure.section-key-unknown",
+      "description": "required_sections 只接受已定義的章節 key。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "report.source-required",
+      "description": "必須提供 report_markdown 或 report_path。",
+      "failure_action": "block"
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "包含 status、sections_present、measured_length 與 findings 的結構檢查結果。"
+  },
+  "result_policy": {
+    "validate_output_schema": true,
+    "sensitive_data_classes": [
+      "none"
+    ],
+    "redaction_rules": [
+      "移除任何 credential 或 token 類欄位後才回傳結果"
+    ],
+    "max_inline_bytes": 65536,
+    "overflow_action": "summarize"
+  },
+  "important_preconditions": [
+    "報告草稿已完成章節"
+  ],
+  "effects": {
+    "effect_classes": [
+      "read"
+    ],
+    "reads_input": true,
+    "creates_resource": false,
+    "modifies_input": false,
+    "external_write": false,
+    "destructive": false,
+    "data_egress": false,
+    "incurs_cost": false,
+    "privileged_access": false,
+    "requires_approval": false
+  },
+  "approval_policy": {
+    "mode": "not-required",
+    "scope": null,
+    "bind_to_target": false,
+    "bind_to_subject": true,
+    "expiry_required": false
+  },
+  "important_errors": [
+    "INVALID_ARGUMENT",
+    "SEMANTIC_VALIDATION_FAILED"
+  ]
+}
