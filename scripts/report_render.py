@@ -10,16 +10,19 @@ unless the caller explicitly asks for it.
 from __future__ import annotations
 
 import html
+import json
 import re
 from typing import Any
 
 from research_store import (
     SemanticError,
     bilingual_length,
+    digest,
     read_report,
     require,
     resolve_inside,
     resolve_run_dir,
+    write_text_atomic,
 )
 
 HEADING = re.compile(r"^\s{0,3}(#{1,6})\s+(.*)$")
@@ -49,6 +52,32 @@ code { background: rgba(127, 181, 218, 0.16); border-radius: 4px; padding: 0.1re
 pre { background: rgba(127, 181, 218, 0.12); border-radius: 8px; overflow-x: auto; padding: 1rem; }
 footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; margin-top: 3rem; padding-top: 1rem; }
 """
+
+VERIFICATION_ARTIFACTS = (
+    "structure_check.json",
+    "citation_map.json",
+    "claim_support.json",
+)
+
+
+def _require_current_verification(run_dir, report: str) -> dict[str, str]:
+    """Require all delivery gates to be PASS for this exact report revision."""
+    expected_digest = "sha256:" + digest(report)
+    verified: dict[str, str] = {}
+    for name in VERIFICATION_ARTIFACTS:
+        path = run_dir / name
+        if not path.is_file():
+            raise SemanticError("render.verification-missing", "missing verification artifact: " + name)
+        try:
+            artifact = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            raise SemanticError("render.verification-invalid", "invalid verification artifact: " + name) from exc
+        if artifact.get("status") != "PASS":
+            raise SemanticError("render.verification-failed", "verification artifact is not PASS: " + name)
+        if artifact.get("report_digest") != expected_digest:
+            raise SemanticError("render.verification-stale", "verification artifact is stale: " + name)
+        verified[name] = expected_digest
+    return verified
 
 
 def _inline(text: str) -> str:
@@ -154,6 +183,7 @@ def render_html(payload: dict[str, Any]) -> dict[str, Any]:
     """Render the verified report into one escaped, self-contained HTML deliverable."""
     run_dir = resolve_run_dir(payload, create=False)
     report = read_report(payload, run_dir)
+    verification = _require_current_verification(run_dir, report)
     title = require(payload, "title", "render.title-required")
     output_path = resolve_inside(run_dir, payload.get("output_path", "report.html"), "render.output-inside-workspace")
     if output_path.suffix.lower() != ".html":
@@ -175,7 +205,7 @@ def render_html(payload: dict[str, Any]) -> dict[str, Any]:
         + "\n<footer>" + html.escape(payload.get("footer", "本報告由 deep-research-metis 產出，所有主張均對應已持久化證據。"), quote=False)
         + "</footer>\n</body>\n</html>\n"
     )
-    output_path.write_text(document, encoding="utf-8", newline="\n")
+    write_text_atomic(output_path, document)
     return {
         "status": "OK",
         "output_path": str(output_path),
@@ -183,4 +213,6 @@ def render_html(payload: dict[str, Any]) -> dict[str, Any]:
         "blocks": len(blocks),
         "measured_length": bilingual_length(report),
         "self_contained": True,
+        "report_digest": "sha256:" + digest(report),
+        "verification_artifacts": sorted(verification),
     }

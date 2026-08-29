@@ -16,6 +16,7 @@ import importlib.util
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +52,13 @@ def _inside(root: Path, value: str, prefix: str) -> Path:
     return candidate
 
 
+def _bundled_inside(value: str) -> Path:
+    for prefix in ("scripts/", "assets/"):
+        if isinstance(value, str) and value.startswith(prefix):
+            return _inside(SKILL_ROOT, value, prefix)
+    raise GuardError("path_prefix_invalid", "bundled dependency must stay under scripts/ or assets/")
+
+
 def _digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -64,6 +72,8 @@ def _validate_schema(payload: Any, schema: dict[str, Any], location: str = "payl
             raise GuardError("invalid_arguments", location + " must be of type " + expected)
         if expected == "integer" and isinstance(payload, bool):
             raise GuardError("invalid_arguments", location + " must be of type integer")
+        if expected == "number" and isinstance(payload, bool):
+            raise GuardError("invalid_arguments", location + " must be of type number")
     if "enum" in schema and payload not in schema["enum"]:
         raise GuardError("invalid_arguments", location + " must be one of: " + ", ".join(str(item) for item in schema["enum"]))
     if isinstance(payload, dict):
@@ -83,6 +93,46 @@ def _validate_schema(payload: Any, schema: dict[str, Any], location: str = "payl
             _validate_schema(item, schema["items"], location + "[" + str(index) + "]")
 
 
+def _parse_approval_time(value: Any, field: str) -> datetime:
+    if not isinstance(value, str) or not value.strip():
+        raise GuardError("approval_denied", "approval record is missing " + field)
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise GuardError("approval_denied", "approval " + field + " must be ISO 8601") from exc
+    if parsed.tzinfo is None:
+        raise GuardError("approval_denied", "approval " + field + " must include a timezone")
+    return parsed.astimezone(timezone.utc)
+
+
+def _normalized_target(value: Any) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise GuardError("approval_denied", "approval target must be a non-empty path")
+    return value.strip().replace("\\", "/").removeprefix("./")
+
+
+def _report_subject_digest(payload: dict[str, Any]) -> str:
+    inline = payload.get("report_markdown")
+    if isinstance(inline, str) and inline.strip():
+        content = inline
+    else:
+        run_dir_raw = payload.get("run_dir")
+        report_path_raw = payload.get("report_path")
+        if not isinstance(run_dir_raw, str) or not isinstance(report_path_raw, str):
+            raise GuardError("approval_denied", "approval subject cannot be resolved")
+        run_dir = Path(run_dir_raw).expanduser().resolve()
+        report_path = Path(report_path_raw).expanduser()
+        report_path = (run_dir / report_path).resolve() if not report_path.is_absolute() else report_path.resolve()
+        try:
+            report_path.relative_to(run_dir)
+        except ValueError as exc:
+            raise GuardError("approval_denied", "approval subject escapes the run workspace") from exc
+        if not report_path.is_file():
+            raise GuardError("approval_denied", "approval subject report does not exist")
+        content = report_path.read_text(encoding="utf-8")
+    return "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
 def _enforce_approval(contract: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any] | None:
     effects = contract.get("effects", {})
     policy = contract.get("approval_policy", {})
@@ -96,8 +146,21 @@ def _enforce_approval(contract: dict[str, Any], payload: dict[str, Any]) -> dict
     for field in ("granted_by", "granted_at", "scope"):
         if not approval.get(field):
             raise GuardError("approval_denied", "approval record is missing " + field)
-    if policy.get("bind_to_target") and not approval.get("target"):
-        raise GuardError("approval_denied", "approval must bind to the target artifact")
+    if policy.get("scope") and approval.get("scope") != policy["scope"]:
+        raise GuardError("approval_denied", "approval scope does not match the function contract")
+    granted_at = _parse_approval_time(approval.get("granted_at"), "granted_at")
+    if policy.get("expiry_required"):
+        expires_at = _parse_approval_time(approval.get("expires_at"), "expires_at")
+        if expires_at <= datetime.now(timezone.utc) or expires_at <= granted_at:
+            raise GuardError("approval_denied", "approval is expired or has an invalid time window")
+    if policy.get("bind_to_target"):
+        target_parameter = policy.get("target_parameter", "output_path")
+        requested_target = payload.get(target_parameter, policy.get("target_default"))
+        if _normalized_target(approval.get("target")) != _normalized_target(requested_target):
+            raise GuardError("approval_denied", "approval target does not match the requested artifact")
+    if policy.get("subject_resolver") == "report-content-sha256":
+        if approval.get("subject_digest") != _report_subject_digest(payload):
+            raise GuardError("approval_denied", "approval subject digest does not match the report")
     return approval
 
 
@@ -178,12 +241,19 @@ def invoke(tool_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     events.append("approval")
 
     runtime_path = _inside(SKILL_ROOT, entry["runtime_ref"], "tools/runtime/")
+    if _digest(runtime_path) != entry.get("runtime_digest"):
+        raise GuardError("runtime_digest_mismatch", "runtime metadata digest is stale")
     runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
     if runtime.get("compatible_contract_digest") != contract_digest:
         raise GuardError("runtime_incompatible", "runtime metadata is incompatible with the function contract")
     module_path = _inside(SKILL_ROOT, runtime["module"], "scripts/")
     if _digest(module_path) != entry["code_digest"]:
         raise GuardError("code_digest_mismatch", "function code digest is stale")
+    for dependency in runtime["dependencies"].get("bundled_paths", []):
+        dependency_path = _bundled_inside(dependency["path"])
+        if not dependency_path.is_file() or _digest(dependency_path) != dependency["digest"]:
+            raise GuardError("dependency_digest_mismatch", "bundled dependency digest is stale: " + dependency["path"])
+    events.append("verify-dependencies")
     events.append("resolve-entrypoint")
 
     allowed_environment = set(runtime["environment"]["allowlist"])
@@ -220,7 +290,11 @@ def invoke(tool_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         "contract_version": contract["version"],
         "contract_digest": contract_digest,
         "code_digest": entry["code_digest"],
-        "approval": {"decision": approval["decision"], "scope": approval["scope"]} if approval else None,
+        "approval": {
+            "decision": approval["decision"],
+            "scope": approval["scope"],
+            "target": approval.get("target"),
+        } if approval else None,
         "events": events,
         "redaction_applied": metadata["redaction_applied"],
         "overflow_action": metadata["overflow_action"],
@@ -229,6 +303,10 @@ def invoke(tool_id: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def main() -> int:
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="strict")
     if len(sys.argv) != 2:
         json.dump({"status": "BLOCKED", "error": {"code": "usage", "message": "usage: run_function.py <group.function>"}}, sys.stdout, ensure_ascii=False)
         sys.stdout.write("\n")

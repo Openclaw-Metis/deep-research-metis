@@ -1,7 +1,7 @@
 {
   "id": "source-ledger.register_sources",
-  "version": "1.0.0",
-  "description": "把檢索到的來源寫入 append-only 的 sources.jsonl，正規化網址後產生穩定 source_id，重複來源合併回既有 id。",
+  "version": "1.1.0",
+  "description": "把 http(s) 來源寫入 append-only 的 sources.jsonl，拒絕 userinfo credential、正規化網址後產生穩定 source_id，重複來源合併回既有 id。",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -61,7 +61,12 @@
   "semantic_validations": [
     {
       "rule_id": "source.url-invalid",
-      "description": "來源網址必須是含 scheme 與 host 的絕對網址。",
+      "description": "來源網址必須是含 host 的 http(s) 絕對網址。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "source.url-credentials",
+      "description": "userinfo credential 不得出現在來源網址中。",
       "failure_action": "block"
     },
     {

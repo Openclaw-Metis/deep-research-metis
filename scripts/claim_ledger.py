@@ -15,14 +15,12 @@ from typing import Any
 
 from research_store import (
     SemanticError,
-    append_jsonl,
     bilingual_length,
     digest,
     load_lexicon,
-    read_jsonl,
     read_report,
-    require,
     resolve_run_dir,
+    write_jsonl_atomic,
 )
 
 HEADING = re.compile(r"^\s{0,3}#{1,6}\s+(.*)$")
@@ -67,7 +65,8 @@ def extract_claims(payload: dict[str, Any]) -> dict[str, Any]:
     section = "preamble"
     in_fence = False
     claims: list[dict[str, Any]] = []
-    seen: set[str] = {record["claim_hash"] for record in read_jsonl(run_dir / "claims.jsonl")}
+    seen: set[str] = set()
+    report_digest = "sha256:" + digest(report)
     for line in report.splitlines():
         if FENCE.match(line):
             in_fence = not in_fence
@@ -107,18 +106,20 @@ def extract_claims(payload: dict[str, Any]) -> dict[str, Any]:
                     "citations": citations,
                     "kind": kind,
                     "measured_length": bilingual_length(sentence),
+                    "report_digest": report_digest,
                 }
             )
 
-    claims_path = run_dir / "claims.jsonl"
-    append_jsonl(claims_path, claims)
     require_cited = payload.get("require_cited_claims", True)
     cited = [claim for claim in claims if claim["kind"] == "cited"]
-    if require_cited and claims and not cited:
+    if require_cited and not cited:
         raise SemanticError("claim.no-cited-claim", "the report contains no cited factual claim")
+    claims_path = run_dir / "claims.jsonl"
+    write_jsonl_atomic(claims_path, claims)
     return {
         "status": "OK",
         "claims_path": str(claims_path),
+        "report_digest": report_digest,
         "claims": claims,
         "counts": {
             "extracted": len(claims),

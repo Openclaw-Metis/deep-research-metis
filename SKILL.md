@@ -1,7 +1,7 @@
 ---
 name: deep-research-metis
 description: 用於需要多來源、可追溯、claim 級可驗證的研究報告：深度研究、技術或市場比較、文獻與趨勢回顧、既有報告的引用鏈與主張支撐度稽核。觸發語句包含「做一份深度研究報告」「幫我比較 A 與 B 並附來源」「檢查這份報告的引用有沒有對應證據」「research report with citations」。單次事實查詢、單一文件摘要、網頁抓取本身與簡報影片製作不適用，應交回一般檢索流程或對應的專門 skill。成功輸出是一個工作區，內含來源帳本、逐字證據、主張帳本、引用對應表、支撐度判定與可交付的報告。
-version: 2026.8.29
+version: 2026.8.30
 allowed-tools: ["filesystem_write"]
 metadata: {"author":"Openclaw-Metis","language":"zh-TW","category":"research","domain":"deep-research-report","short-description":"以隨技能交付的 Python 函數產出可追溯、雙語可驗證的研究報告"}
 ---
@@ -37,7 +37,7 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 - 可寫入的 run 工作區路徑，必須位於本技能資料夾之外。
 
 成功輸出：
-- 工作區內具備 research_plan.json、sources.jsonl、evidence.jsonl、claims.jsonl、citation_map.json、claim_support.json 與 run_manifest.json。
+- 工作區內具備 research_plan.json、sources.jsonl、evidence.jsonl、claims.jsonl、structure_check.json、citation_map.json、claim_support.json 與 run_manifest.json。
 - 報告的三項檢查結果如實記錄；通過後才產生自包含 HTML 交付物。
 </decision_boundary>
 
@@ -76,7 +76,7 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 
 #### `source-ledger.register_sources`
 
-- 能力：正規化網址、指派穩定 `source_id`、合併重複來源並記錄諮詢性權威訊號。
+- 能力：只接受 http(s) 來源，拒絕 userinfo credential，正規化網址、指派穩定 `source_id`、合併重複來源並記錄諮詢性權威訊號。
 - Use when：任何來源要被引用之前。
 - Avoid when：來源沒有可追溯網址，應先取得原始出處。
 
@@ -88,13 +88,13 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 
 #### `claim-ledger.extract_claims`
 
-- 能力：以中英文共用規則切分句子，抽出主張、所屬章節與引用編號。
+- 能力：以中英文共用規則切分句子，抽出主張、所屬章節與引用編號，並以 report digest 綁定的原子快照取代上一版 derived claims。
 - Use when：草稿完成、要進入驗證階段。
 - Avoid when：報告仍在大幅改寫，抽取結果很快就會過期。
 
 #### `report-verify.check_structure`
 
-- 能力：檢查必要章節、雙語標題、佔位字串與雙語長度下限。
+- 能力：檢查必要章節、雙語標題、佔位字串、正文行內引用與雙語長度下限，結果持久化為 `structure_check.json`。
 - Use when：每次要判斷報告是否具備可交付結構。
 - Avoid when：只想確認引用鏈，該用引用檢查。
 
@@ -112,7 +112,7 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 
 #### `report-render.render_html`
 
-- 能力：把通過驗證的報告渲染成單檔、全跳脫、無外部資源的 HTML 交付物。
+- 能力：確認三項驗證產物皆為 PASS 且 report digest 與目前草稿一致後，渲染成單檔、全跳脫、無外部資源的 HTML 交付物。
 - Use when：三項檢查皆 PASS 且已取得寫入授權。
 - Avoid when：仍有 error 級 finding，或沒有 approval record。
 
@@ -170,7 +170,7 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 6. 驗證效果分類與 scoped approval。
 7. 以 JSON stdin／stdout 呼叫 Python，環境變數只保留 allowlist。
 8. 檢查 exit code、解析輸出、套用 result policy，再依 playbook 成功條件判定業務結果。
-9. 記錄 contract digest、code digest、相依路徑、exit code 與結果狀態。
+9. 記錄 contract、runtime metadata、code 與 bundled dependency digest、相依路徑、exit code 與結果狀態。
 
 領域不符、函數未登錄、入口不在 `scripts/`、第三方套件不在 `assets/`、執行期要求安裝套件、參數驗證失敗、效果未分類、approval 缺失或成功條件無法驗證時，拒絕、交棒或安全停止。MCP、provider binding 與 dynamic registration 不屬於本技能的執行面。
 
@@ -191,28 +191,28 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 - 動作：每個要被引用的來源都先經 `source-ledger.register_sources` 取得穩定身分，程式在此：[source ledger](scripts/source_ledger.py)；再以 `evidence-store.append_evidence` 寫入逐字引文，程式在此：[evidence store](scripts/evidence_store.py)。
 - 輸入：來源網址、標題、發布資訊與逐字引文。
 - 輸出：`sources.jsonl` 與 `evidence.jsonl`。
-- 驗證：引文的 `source_id` 必須已登錄；網址中的 credential 參數會被移除後才寫入帳本。
+- 驗證：引文的 `source_id` 必須已登錄；網址 query 中的 credential 參數會被移除，userinfo credential 與非 http(s) URL 直接拒絕。
 
 步驟 3：抽取主張
 - 動作：草稿完成後以 `claim-ledger.extract_claims` 切分句子並標記引用，程式在此：[claim ledger](scripts/claim_ledger.py)。中英文的切分與計分規則另見雙語驗證模型：[bilingual verification](references/bilingual-verification.md)。
 - 輸入：報告 Markdown 或工作區內路徑。
-- 輸出：`claims.jsonl` 與 cited／quantitative-uncited／qualitative 分類。
-- 驗證：報告沒有任何帶引用主張時 block，要求先補引用。
+- 輸出：綁定本次 report digest 的 `claims.jsonl` 原子快照，以及 cited／quantitative-uncited／qualitative 分類。
+- 驗證：報告沒有任何帶引用主張時 block；續跑或草稿更新時替換 derived snapshot，不混入上一版主張。
 
 步驟 4：執行三項檢查
 - 動作：依序執行 `report-verify.check_structure`、`report-verify.check_citations` 與 `report-verify.check_claim_support`，三者共用同一份驗證程式：[report verify](scripts/report_verify.py)。章節標題以隨技能交付的中英文別名表比對，資料在此：[section aliases](assets/lexicon/section_aliases.json)。
 - 輸入：報告內容、來源帳本、證據帳本。
-- 輸出：結構 finding、`citation_map.json` 與 `claim_support.json`。
-- 驗證：引用檢查必須先於支撐度計分；任一檢查出現 error 級 finding 時停止並補證，不調整門檻。
+- 輸出：`structure_check.json`、`citation_map.json` 與 `claim_support.json`，三者都綁定同一 report digest。
+- 驗證：書目自身編號與 code fence 不算正文行內引用；引用檢查必須先於支撐度計分，digest 不一致或任一檢查出現 error 級 finding 時停止並補證。
 
 步驟 5：渲染交付物
 - 動作：三項檢查皆 PASS 且取得 approval record 後，以 `report-render.render_html` 產生自包含 HTML，程式在此：[report render](scripts/report_render.py)。完整呼叫序列與 payload 範例在此：[full report run](examples/full-report-run.md)。
 - 輸入：報告內容、標題、輸出檔名、approval record。
 - 輸出：工作區內的 HTML 交付物。
-- 驗證：缺少 approval、輸出路徑逃出工作區或既有檔案未取得覆寫授權時，一律拒絕且不寫檔。
+- 驗證：缺少或過期 approval、scope／target／subject digest 不符、三項驗證產物非 PASS／過期、輸出路徑逃出工作區，或既有檔案未取得覆寫授權時，一律拒絕且不寫檔。
 
 步驟 6：記錄狀態並回報
-- 動作：以 `run-manifest.write_manifest` 記錄階段、gate 結果與產物 digest，程式在此：[run manifest](scripts/run_manifest.py)。所有函數都必須經由共用 runner 呼叫，入口在此：[run function](scripts/run_function.py)。只做稽核時的最小請求範例在此：[verification request](examples/verification-request.json)。
+- 動作：以 `run-manifest.write_manifest` 記錄階段、gate 結果與產物 digest，程式在此：[run manifest](scripts/run_manifest.py)。所有函數都必須經由共用 runner 呼叫，入口在此：[run function](scripts/run_function.py)。修改 contract、runtime、Python module 或 bundled asset 後，以維護工具重新綁定完整 digest 鏈：[registry digest sync](scripts/sync_registry_digests.py)。只做稽核時的最小請求範例在此：[verification request](examples/verification-request.json)。
 - 輸入：本階段實際執行的檢查結果。
 - 輸出：更新後的 `run_manifest.json` 與給使用者的結論。
 - 驗證：manifest 內容必須與實際結果一致；已完成階段不得在未明示 `allow_downgrade` 時被降級。
@@ -237,8 +237,8 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 <tool_rules>
 - 只呼叫 registry 與目前 playbook 同時列出的函數；未登錄的函數 ID 一律拒絕。
 - 所有呼叫都經由共用 runner，以 `python scripts/run_function.py <group.function>` 搭配 JSON stdin 執行；exit code 0 表示完成、2 表示函數失敗、3 表示 guard 阻擋。
-- 函數的參數、語意規則、效果分類與 result policy 以其 contract 為準；contract 或程式 digest 過期時停止執行並重建 registry。
-- `report-render.render_html` 具有 external_write 效果，必須附帶含 decision、granted_by、granted_at、scope 與 target 的 approval record。
+- 函數的參數、語意規則、效果分類與 result policy 以其 contract 為準；contract、runtime metadata、程式或 bundled dependency digest 過期時停止執行並重建 registry。
+- `report-render.render_html` 具有 external_write 效果，approval record 必須含 decision、granted_by、granted_at、expires_at、scope、target 與目前報告的 subject_digest。
 - 第三方套件必須隨技能放在 `assets/`；執行期間不安裝也不下載任何套件，目前所有函數僅使用標準函式庫。
 - 維持完成任務所需的最小函數集合：稽核任務不呼叫渲染函數，證據整理任務不呼叫驗證函數。
 </tool_rules>
@@ -247,7 +247,7 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 - 直接執行：建立工作區、登錄來源、持久化證據、抽取主張、執行三項檢查、更新 manifest；這些操作只在呼叫端指定的工作區內新增檔案，任一函數以非零 exit code 回傳時停止並回報該次的錯誤碼，不重試第二次。
 - 先詢問：渲染 HTML 交付物、覆寫既有交付物、把研究產物寫到工作區以外的位置；未取得授權時只交付 Markdown 報告與檢查結果。
 - 停止並回報：來源或證據不足、引用鏈斷裂、支撐度不足、使用者要求略過檢查或改寫檢查結論。
-- 回復方式（rollback）：帳本為 append-only，manifest 與引用對應表以暫存檔加原子替換寫入；需要回復時刪除本輪在工作區新增的產物即可回到前一狀態，技能本身的 rollback 是 revert 對應的發版 commit。
+- 回復方式（rollback）：來源與證據帳本為 append-only；claims 與三項驗證產物是綁定 report digest 的 derived snapshot，manifest、derived snapshot 與 HTML 都以暫存檔加原子替換寫入。需要回復時刪除本輪在工作區新增的產物即可回到前一狀態，技能本身的 rollback 是 revert 對應的發版 commit。
 </default_follow_through_policy>
 
 <examples>
@@ -288,7 +288,7 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 ## 測試與 eval
 
 - 觸發與功能案例涵蓋中英混合語言、正負樣本與相鄰情境，案例在此：[evals](assets/evals/evals.json)。
-- Code as Tool 的十三種決定性軌跡涵蓋 happy path、領域外、未登錄函數、參數錯誤、approval denial、語意驗證失敗、專家驗證失敗、輸出遮罩、Python-only、assets 相依、workflow 組合、工作目錄獨立與函數失敗，軌跡在此：[tool execution traces](assets/evals/tool-execution-traces.json)。
+- Code as Tool 的十五種決定性軌跡除原有 happy path、guard 與失敗情境外，另涵蓋 verification freshness 與 approval binding，軌跡在此：[tool execution traces](assets/evals/tool-execution-traces.json)。
 - 退步判定門檻與必要涵蓋條件在此：[regression gates](assets/evals/regression_gates.json)。
 
 ## 契約與治理
@@ -309,5 +309,5 @@ deep-research-metis 是單一領域的 Python Code as Tool 技能。它把研究
 
 - 症狀：中文報告的主張全部被判為 unsupported。原因：引用的是英文原文而主張沒有可對照錨點。修正：在主張中保留數字、單位或專有名詞，或補一則同語言引文。
 - 症狀：`check_citations` 回報 `source_not_registered`。原因：書目網址沒有先經來源登錄，或使用了不同的追蹤參數版本。修正：先執行 `source-ledger.register_sources`，正規化後兩者即可對上。
-- 症狀：`render_html` 回傳 `approval_denied`。原因：payload 缺少 approval record 或缺少 target 欄位。修正：補齊 decision、granted_by、granted_at、scope 與 target 後重試。
-- 症狀：函數回報 digest 過期。原因：程式或 contract 被修改但 registry 未重建。修正：重新產生 contract 與 code digest 後再執行。
+- 症狀：`render_html` 回傳 `approval_denied`。原因：approval 缺欄位、已到期，或 scope、target、subject digest 與本次輸出不符。修正：針對目前報告與輸出重新取得有時限的 scoped approval。
+- 症狀：函數回報 digest 過期。原因：contract、runtime metadata、程式或 bundled dependency 被修改但 registry 未重建。修正：執行 `python -B scripts/sync_registry_digests.py --registry-version <version>` 後再驗證。

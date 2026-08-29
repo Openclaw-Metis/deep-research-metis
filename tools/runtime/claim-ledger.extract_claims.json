@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/claim_ledger.py",
   "callable": "extract_claims",
-  "compatible_contract_digest": "sha256:d02e2373cc03e58ed93c51aba8e1e7fa2e3b0efae978de007b2a2e38b930aee0",
+  "compatible_contract_digest": "sha256:f7e64c73be7b7f1112c4692a30ffd331046ba072d337d23b120265921caabedf",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",
@@ -16,7 +16,17 @@
     "asset_paths": [
       "assets/lexicon"
     ],
-    "third_party_imports": []
+    "third_party_imports": [],
+    "bundled_paths": [
+      {
+        "path": "scripts/research_store.py",
+        "digest": "sha256:9778a410925b6386737f3909b0eb9adabf2544952b22463db7afd2b9e3e64ef3"
+      },
+      {
+        "path": "assets/lexicon/section_aliases.json",
+        "digest": "sha256:fd2e57c0b736cbd81de41f766d457f4d6525868184555afb2311b1546b1f1c61"
+      }
+    ]
   },
   "timeout_seconds": 60,
   "environment": {

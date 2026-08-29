@@ -1,7 +1,7 @@
 {
   "id": "report-verify.check_citations",
-  "version": "1.0.0",
-  "description": "解析行內 [N] 標記與書目條目，檢查佔位項目、缺連結、重複編號與未登錄來源，並輸出 citation_map.json 供支撐度評分使用。",
+  "version": "1.1.0",
+  "description": "解析報告正文的 [N] 標記與書目條目（排除 code fence 與書目自身編號），檢查引用鏈並輸出綁定 report digest 的 citation_map.json。",
   "input_schema": {
     "type": "object",
     "properties": {

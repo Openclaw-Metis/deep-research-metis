@@ -22,7 +22,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "function_group", "version", "summary", "playbook_ids", "contract_ref", "contract_digest", "runtime_ref", "code_digest", "status"],
+        "required": ["id", "function_group", "version", "summary", "playbook_ids", "contract_ref", "contract_digest", "runtime_ref", "runtime_digest", "code_digest", "status"],
         "properties": {
           "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z][a-z0-9_]*$"},
           "function_group": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
@@ -32,6 +32,7 @@
           "contract_ref": {"type": "string", "pattern": "^tools/contracts/[^/]+\\.json$"},
           "contract_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
           "runtime_ref": {"type": "string", "pattern": "^tools/runtime/[^/]+\\.json$"},
+          "runtime_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
           "code_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
           "status": {"enum": ["active", "deprecated", "disabled"]},
           "replaced_by": {"type": ["string", "null"]}

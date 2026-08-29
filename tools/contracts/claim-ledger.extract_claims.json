@@ -1,7 +1,7 @@
 {
   "id": "claim-ledger.extract_claims",
-  "version": "1.0.0",
-  "description": "跳過程式碼區塊、表格與書目後，依中英文標點切分句子，標記 cited、quantitative-uncited 與 qualitative 三種主張並寫入 claims.jsonl。",
+  "version": "1.1.0",
+  "description": "跳過程式碼區塊、表格與書目後，依中英文標點切分句子，標記三種主張並以 report digest 綁定的原子快照寫入 claims.jsonl。",
   "input_schema": {
     "type": "object",
     "properties": {

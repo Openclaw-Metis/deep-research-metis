@@ -8,7 +8,7 @@
     "待驗證的報告 Markdown 或工作區內報告路徑"
   ],
   "outputs": [
-    "工作區內的 research_plan.json、sources.jsonl、evidence.jsonl、claims.jsonl、citation_map.json、claim_support.json 與 run_manifest.json",
+    "工作區內的 research_plan.json、sources.jsonl、evidence.jsonl、claims.jsonl、structure_check.json、citation_map.json、claim_support.json 與 run_manifest.json",
     "通過結構、引用與支撐度檢查的報告與自包含 HTML 交付物",
     "被 guard 阻擋時的 typed failure envelope 與 failed_rule_id"
   ],
@@ -83,7 +83,7 @@
           "preconditions": [
             "已取得研究問題與可寫入的 run_dir 工作區",
             "檢索能力由 host 提供，來源與引文可由呼叫端取得",
-            "渲染交付物前已備妥 approval record"
+            "渲染交付物前已備妥綁定 scope、target、report digest 與期限的 approval record"
           ],
           "workflow": {
             "steps": [
@@ -104,13 +104,14 @@
             "以 append_evidence 持久化逐字引文，寫作時只引用已持久化的內容",
             "草稿完成後依序執行 extract_claims、check_structure 與 check_citations",
             "以 check_claim_support 評分每個帶引用主張，補證後重跑",
-            "三項檢查皆 PASS 且取得 approval 後才執行 render_html",
+            "三項檢查皆 PASS、產物綁定目前 report digest 且取得 scoped approval 後才執行 render_html",
             "以 write_manifest 記錄階段狀態、gate 結果與產物 digest"
           ],
           "success_criteria": [
             "check_structure 的 status 為 PASS 且沒有 placeholder finding",
             "check_citations 沒有 error 級 finding 且每個行內引用都對應到已登錄來源",
             "check_claim_support 沒有 unsupported 主張，unverifiable 主張已在報告中標註查證建議",
+            "三項驗證產物的 report_digest 與交付草稿一致",
             "run_manifest.json 記錄了本輪實際執行的 gate 結果"
           ],
           "fallbacks": [
@@ -268,6 +269,7 @@
         "validate-semantics",
         "validate-effects",
         "approval",
+        "verify-dependencies",
         "resolve-entrypoint",
         "validate-python",
         "resolve-assets",

@@ -195,6 +195,52 @@
         "不覆寫既有的 sources.jsonl 與 evidence.jsonl",
         "已完成階段不被降級，除非明示 allow_downgrade"
       ]
+    },
+    {
+      "id": 13,
+      "name": "zh-bibliography-marker-not-inline-citation",
+      "type": "functional",
+      "language": "zh",
+      "trigger_class": "direct",
+      "coverage_tags": ["failure-mode", "edge-case"],
+      "prompt": "報告只有書目 [1]，正文沒有引用，請檢查是否可交付。",
+      "expected_output": "check_structure 回報 no_inline_citation，check_citations 將書目項目列為 entry_without_citation。",
+      "files": ["report.md", "sources.jsonl"],
+      "expectations": [
+        "書目自身的 [1] 不計入 inline_citations",
+        "不因書目有編號就誤判引用鏈完整"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "en-stale-verification-render-blocked",
+      "type": "functional",
+      "language": "en",
+      "trigger_class": "direct",
+      "coverage_tags": ["failure-mode"],
+      "prompt": "The report changed after verification; render the old approved output anyway.",
+      "expected_output": "render_html 比對 report digest 後以 render.verification-stale 阻擋，不產生 HTML。",
+      "files": ["report.md", "structure_check.json", "citation_map.json", "claim_support.json"],
+      "expectations": [
+        "三項驗證產物必須綁定目前報告內容",
+        "stale verification 不得由 approval 覆蓋"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "mixed-approval-binding-mismatch",
+      "type": "functional",
+      "language": "mixed",
+      "trigger_class": "direct",
+      "coverage_tags": ["failure-mode", "edge-case"],
+      "prompt": "用先前核准 other.html 的 approval，輸出目前 report.html。",
+      "expected_output": "runner 核對 scope、target、subject_digest 與 expires_at，任一不符即回傳 approval_denied。",
+      "files": ["report.md"],
+      "expectations": [
+        "approval target 必須等於 requested output_path",
+        "approval subject_digest 必須等於目前報告 digest",
+        "過期 approval 不可使用"
+      ]
     }
   ]
 }

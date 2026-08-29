@@ -61,7 +61,10 @@
         "scope": {"type": ["string", "null"]},
         "bind_to_target": {"type": "boolean"},
         "bind_to_subject": {"type": "boolean"},
-        "expiry_required": {"type": "boolean"}
+        "expiry_required": {"type": "boolean"},
+        "target_parameter": {"type": "string", "minLength": 1},
+        "target_default": {"type": "string", "minLength": 1},
+        "subject_resolver": {"enum": ["report-content-sha256"]}
       },
       "additionalProperties": false
     },

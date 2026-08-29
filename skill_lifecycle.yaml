@@ -5,10 +5,10 @@ archetype: tool-executor
 primary_structure_pattern: code-as-tool
 lifecycle:
   created_at: 2026-08-29
-  last_validated_at: 2026-08-29
-  last_released_at: 2026-08-29
+  last_validated_at: 2026-08-30
+  last_released_at: 2026-08-30
   review_interval_days: 60
-  next_review_due: 2026-10-28
+  next_review_due: 2026-10-29
 support:
   primary_hosts:
     - agent-skills

@@ -8,7 +8,7 @@
 
 一般研究流程最常見的失效不是「找不到資料」，而是交付時沒人能證明每個數字出自哪一句原文。本技能把這件事變成機械可檢查的事：
 
-- **來源有穩定身分**：網址正規化後產生 `source_id`，重複來源自動合併，追蹤參數與 credential 參數在寫入帳本前移除。
+- **來源有穩定身分**：只接受 http(s) 來源；userinfo credential 直接拒絕，query credential 與追蹤參數在寫入帳本前移除。
 - **證據先於寫作**：逐字引文以 append-only 方式持久化，寫作只能引用已存在的引文。
 - **主張逐句可驗**：報告切成 claim，每個帶引用的主張都對照它所引來源的引文計分。
 - **交付前三道檢查**：結構、引用鏈、主張支撐度，任一不過就不交付。
@@ -51,8 +51,8 @@ exit code `0` 表示完成、`2` 表示函數失敗、`3` 表示 guard 在呼叫
 | `research-plan.build_plan` | 固定模式預算、必要章節與停止條件 |
 | `source-ledger.register_sources` | 網址正規化、穩定 `source_id`、重複合併、諮詢性權威訊號 |
 | `evidence-store.append_evidence` | 逐字引文綁定來源並 append-only 持久化 |
-| `claim-ledger.extract_claims` | 中英文共用規則切句，標記引用與主張類型 |
-| `report-verify.check_structure` | 必要章節、雙語標題、佔位字串、雙語長度下限 |
+| `claim-ledger.extract_claims` | 中英文共用規則切句，建立綁定 report digest 的 derived snapshot |
+| `report-verify.check_structure` | 必要章節、正文引用、佔位字串與雙語長度，持久化檢查結果 |
 | `report-verify.check_citations` | 行內引用、書目條目與來源帳本三方比對，產生引用對應表 |
 | `report-verify.check_claim_support` | 同語系／跨語系兩套計分，輸出四種判定 |
 | `report-render.render_html` | 單檔、全跳脫、無外部資源的 HTML 交付物 |
@@ -63,15 +63,15 @@ exit code `0` 表示完成、`2` 表示函數失敗、`3` 表示 guard 在呼叫
 ## 執行治理
 
 - **closed-world allowlist**：未登錄的 function ID 在載入 contract 前就被拒絕。
-- **digest 綁定**：registry 以 sha256 綁住每個 contract 與程式檔；任一方被改動而未重建 registry，執行即停止。
+- **完整 digest 鏈**：registry 以 sha256 綁住 contract、runtime metadata、主程式、共用 helper 與 bundled asset；任一方被改動而未同步，執行即停止。
 - **驗證順序**：input schema → 領域語意規則（回傳 `failed_rule_id`）→ 效果分類 → scoped approval → 呼叫 Python → 輸出驗證與 result policy。
-- **approval**：`report-render.render_html` 是唯一具 `external_write` 效果的函數，必須附 approval record，且既有檔案預設不覆寫。
+- **approval**：`report-render.render_html` 只接受未到期且 scope、target、report subject digest 全部相符的 approval；三項驗證結果也必須綁定目前草稿。
 - **工作區邊界**：所有可變狀態寫在呼叫端指定的 `run_dir`，落在 skill 資料夾內會被拒絕；技能本身執行期唯讀。
 - **無網路、無安裝**：目前所有函數僅用標準函式庫；未來若需第三方套件，必須隨技能放入 `assets/`。
 
 ## 產物
 
-一次 run 會在工作區留下 `research_plan.json`、`sources.jsonl`、`evidence.jsonl`、`claims.jsonl`、`citation_map.json`、`claim_support.json`、`run_manifest.json`，以及通過驗證後的報告與 HTML 交付物。manifest 保留既有階段紀錄，中斷後可只補跑未完成階段。
+一次 run 會在工作區留下 `research_plan.json`、`sources.jsonl`、`evidence.jsonl`、`claims.jsonl`、`structure_check.json`、`citation_map.json`、`claim_support.json`、`run_manifest.json`，以及通過驗證後的報告與 HTML 交付物。來源／證據帳本保持 append-only，derived snapshots 隨草稿版本原子替換。
 
 ## 測試與驗證證據
 
@@ -79,9 +79,9 @@ exit code `0` 表示完成、`2` 表示函數失敗、`3` 表示 guard 在呼叫
 python -m unittest discover -s tests
 ```
 
-20 項回歸測試（純標準庫）涵蓋網址正規化與 credential 移除、雙語計分、工作區邊界、帳本去重、佔位字串偵測、runner 四種 guard，以及 registry digest 與磁碟檔案一致性。
+28 項回歸測試（純標準庫）涵蓋網址與 credential 邊界、雙語計分、續跑 snapshot、正文／書目引用分離、verification freshness、approval binding，以及完整 registry digest 鏈。
 
-本版本以 SkillOps Studio 的 stage gate 驗證：create、evaluate、security 與 publish release gate 皆為 `PASS`（security 0 error / 0 warning，Code as Tool 稽核 9 函數 / 13 決定性軌跡）。frozen live benchmark 標記為 `SKIPPED`，因此本專案不提出速度、品質或取代其他技能的宣稱。逐項證據見 [references/readiness_report.md](../references/readiness_report.md)。
+本版本以 SkillOps Studio 驗證：revise、evolve、evaluate、security 與 publish release gate 皆為 `PASS`，Code as Tool 稽核涵蓋 9 個函數與 15 條決定性軌跡。Security 為 0 error / 2 個 test-only subprocess warning；frozen live benchmark 標記為 `SKIPPED`，因此本專案不提出速度、真實 host 品質或取代其他技能的宣稱。逐項證據見 [references/readiness_report.md](../references/readiness_report.md)。
 
 ## 授權與來源
 

@@ -77,7 +77,7 @@ def register_sources(payload: dict[str, Any]) -> dict[str, Any]:
             continue
         record = {
             "source_id": "S" + digest(canonical)[:10],
-            "url": canonical if removed else url.strip(),
+            "url": canonical,
             "credential_params_removed": removed,
             "canonical_url": canonical,
             "title": title.strip(),

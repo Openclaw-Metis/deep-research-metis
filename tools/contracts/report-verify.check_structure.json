@@ -1,7 +1,7 @@
 {
   "id": "report-verify.check_structure",
-  "version": "1.0.0",
-  "description": "以中英文別名比對章節標題，偵測 TODO 類佔位字串，並以 CJK 字元加拉丁詞的方式計算報告長度。",
+  "version": "1.1.0",
+  "description": "以中英文別名比對章節標題，排除書目與 code fence 後檢查行內引用，並將 report digest 綁定的結果寫入 structure_check.json。",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -64,10 +64,11 @@
   ],
   "effects": {
     "effect_classes": [
-      "read"
+      "read",
+      "write"
     ],
     "reads_input": true,
-    "creates_resource": false,
+    "creates_resource": true,
     "modifies_input": false,
     "external_write": false,
     "destructive": false,

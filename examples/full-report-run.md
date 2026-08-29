@@ -40,10 +40,13 @@ echo '{"run_dir":"D:/research/grid-2026","strict":true}' | python scripts/run_fu
 `report-render.render_html` 宣告 `external_write` 效果，必須附上 approval record：
 
 ```bash
-echo '{"run_dir":"D:/research/grid-2026","title":"台灣資料中心用電趨勢研究","report_path":"report.md","output_path":"report.html","_approval":{"decision":"granted","granted_by":"專案負責人","granted_at":"2026-08-29T09:00:00Z","scope":"write-report-deliverable","target":"report.html","expires_at":"2026-08-30T09:00:00Z"}}' | python scripts/run_function.py report-render.render_html
+REPORT_DIGEST=$(python -c "import hashlib,pathlib; print('sha256:' + hashlib.sha256(pathlib.Path('D:/research/grid-2026/report.md').read_bytes()).hexdigest())")
+GRANTED_AT=$(python -c "from datetime import datetime,timezone; print(datetime.now(timezone.utc).isoformat())")
+EXPIRES_AT=$(python -c "from datetime import datetime,timedelta,timezone; print((datetime.now(timezone.utc)+timedelta(hours=1)).isoformat())")
+echo "{\"run_dir\":\"D:/research/grid-2026\",\"title\":\"台灣資料中心用電趨勢研究\",\"report_path\":\"report.md\",\"output_path\":\"report.html\",\"_approval\":{\"decision\":\"granted\",\"granted_by\":\"專案負責人\",\"granted_at\":\"$GRANTED_AT\",\"expires_at\":\"$EXPIRES_AT\",\"scope\":\"write-report-deliverable\",\"target\":\"report.html\",\"subject_digest\":\"$REPORT_DIGEST\"}}" | python scripts/run_function.py report-render.render_html
 ```
 
-缺少 approval 或缺少 `target` 欄位時，runner 以 exit code 3 回傳 `approval_denied`，不會寫出任何檔案。既有檔案也不會被覆寫，除非同時傳入 `"overwrite": true`。
+runner 會先確認 `structure_check.json`、`citation_map.json` 與 `claim_support.json` 都是目前報告 revision 的 PASS，再核對 approval 的 scope、target、subject digest 與期限。任一不符時以 exit code 3 回傳並保持工作區不變；既有檔案也不會被覆寫，除非同時傳入 `"overwrite": true`。
 
 ## 5. 記錄階段狀態
 

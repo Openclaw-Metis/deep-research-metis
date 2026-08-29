@@ -1,6 +1,6 @@
 {
   "id": "report-render.render_html",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "以 Markdown 子集渲染自包含 HTML：所有文字跳脫、僅保留 http(s) 連結、引用標記連到書目錨點；覆寫既有檔案需要明確授權。",
   "input_schema": {
     "type": "object",
@@ -63,6 +63,11 @@
       "rule_id": "render.no-heading",
       "description": "沒有任何標題的報告不得渲染成交付物。",
       "failure_action": "block"
+    },
+    {
+      "rule_id": "render.verification-stale",
+      "description": "三項驗證產物必須全數 PASS，且綁定本次報告內容 digest。",
+      "failure_action": "block"
     }
   ],
   "output": {
@@ -105,7 +110,10 @@
     "scope": "write-report-deliverable",
     "bind_to_target": true,
     "bind_to_subject": true,
-    "expiry_required": true
+    "expiry_required": true,
+    "target_parameter": "output_path",
+    "target_default": "report.html",
+    "subject_resolver": "report-content-sha256"
   },
   "important_errors": [
     "INVALID_ARGUMENT",

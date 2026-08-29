@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/report_render.py",
   "callable": "render_html",
-  "compatible_contract_digest": "sha256:d4b9539e111e01f0254d3916ed63e8c969f9b28819c718db539e874876affb59",
+  "compatible_contract_digest": "sha256:6d19d8388c36578a26feff9c7703d9c92969533e12926e1a7353cf29d3197926",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",
@@ -14,7 +14,13 @@
     "install_during_run": false,
     "network_install": false,
     "asset_paths": [],
-    "third_party_imports": []
+    "third_party_imports": [],
+    "bundled_paths": [
+      {
+        "path": "scripts/research_store.py",
+        "digest": "sha256:9778a410925b6386737f3909b0eb9adabf2544952b22463db7afd2b9e3e64ef3"
+      }
+    ]
   },
   "timeout_seconds": 60,
   "environment": {

@@ -14,7 +14,13 @@
     "install_during_run": false,
     "network_install": false,
     "asset_paths": [],
-    "third_party_imports": []
+    "third_party_imports": [],
+    "bundled_paths": [
+      {
+        "path": "scripts/research_store.py",
+        "digest": "sha256:9778a410925b6386737f3909b0eb9adabf2544952b22463db7afd2b9e3e64ef3"
+      }
+    ]
   },
   "timeout_seconds": 60,
   "environment": {

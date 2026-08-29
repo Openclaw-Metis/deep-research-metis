@@ -17,6 +17,7 @@ from research_store import (
     SemanticError,
     bilingual_length,
     canonical_url,
+    digest,
     read_jsonl,
     load_lexicon,
     read_report,
@@ -66,6 +67,28 @@ def _headings(report: str) -> list[str]:
     return found
 
 
+def _inline_citations(report: str) -> list[int]:
+    """Collect citations from report prose, excluding code fences and bibliography entries."""
+    numbers: set[int] = set()
+    in_fence = False
+    in_bibliography = False
+    for line in report.splitlines():
+        if re.match(r"^\s*(```|~~~)", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        heading = HEADING.match(line)
+        if heading:
+            in_bibliography = any(
+                alias in heading.group(1).lower() for alias in SECTION_ALIASES["bibliography"]
+            )
+            continue
+        if not in_bibliography:
+            numbers.update(int(number) for number in CITATION.findall(line))
+    return sorted(numbers)
+
+
 def check_structure(payload: dict[str, Any]) -> dict[str, Any]:
     """Verify required sections, bilingual headings, placeholders, and minimum depth."""
     run_dir = _optional_run_dir(payload)
@@ -96,23 +119,35 @@ def check_structure(payload: dict[str, Any]) -> dict[str, Any]:
         findings.append(
             _finding("error", "report_too_short", "報告長度不足", measured_length=measured, min_length=minimum)
         )
-    if not CITATION.search(report):
+    if not _inline_citations(report):
         findings.append(_finding("error", "no_inline_citation", "報告沒有任何行內引用標記"))
 
-    return {
+    result = {
         "status": _status(findings),
+        "report_digest": "sha256:" + digest(report),
         "sections_present": present,
         "sections_required": required,
         "headings": headings,
         "measured_length": measured,
         "findings": findings,
     }
+    if run_dir is not None:
+        check_path = run_dir / "structure_check.json"
+        write_json_atomic(check_path, result)
+        result["check_path"] = str(check_path)
+    return result
 
 
 def _bibliography_lines(report: str) -> list[str]:
     lines: list[str] = []
     capturing = False
+    in_fence = False
     for line in report.splitlines():
+        if re.match(r"^\s*(```|~~~)", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
         match = HEADING.match(line)
         if match:
             capturing = any(alias in match.group(1).lower() for alias in SECTION_ALIASES["bibliography"])
@@ -131,7 +166,7 @@ def check_citations(payload: dict[str, Any]) -> dict[str, Any]:
         raise SemanticError("citation.sources-not-registered", "sources.jsonl is empty; register sources first")
     by_canonical = {record["canonical_url"]: record for record in sources}
 
-    inline = sorted({int(number) for number in CITATION.findall(report)})
+    inline = _inline_citations(report)
     findings: list[dict[str, Any]] = []
     citation_map: dict[str, str] = {}
     entry_numbers: list[int] = []
@@ -170,11 +205,9 @@ def check_citations(payload: dict[str, Any]) -> dict[str, Any]:
         if number not in inline:
             findings.append(_finding("warning", "entry_without_citation", "參考來源沒有被任何主張引用", entry=number))
 
-    map_path = run_dir / "citation_map.json"
-    write_json_atomic(map_path, {"citation_map": citation_map, "inline_citations": inline})
-    return {
+    result = {
         "status": _status(findings),
-        "citation_map_path": str(map_path),
+        "report_digest": "sha256:" + digest(report),
         "citation_map": citation_map,
         "counts": {
             "inline_citations": len(inline),
@@ -183,6 +216,10 @@ def check_citations(payload: dict[str, Any]) -> dict[str, Any]:
         },
         "findings": findings,
     }
+    map_path = run_dir / "citation_map.json"
+    write_json_atomic(map_path, result)
+    result["citation_map_path"] = str(map_path)
+    return result
 
 
 def check_claim_support(payload: dict[str, Any]) -> dict[str, Any]:
@@ -197,9 +234,20 @@ def check_claim_support(payload: dict[str, Any]) -> dict[str, Any]:
     map_path = run_dir / "citation_map.json"
     if not map_path.is_file():
         raise SemanticError("support.citation-map-missing", "run check_citations before scoring claim support")
-    citation_map = json.loads(map_path.read_text(encoding="utf-8")).get("citation_map")
+    citation_artifact = json.loads(map_path.read_text(encoding="utf-8"))
+    citation_map = citation_artifact.get("citation_map")
     if not isinstance(citation_map, dict) or not citation_map:
         raise SemanticError("support.citation-map-empty", "citation_map.json holds no resolved citation")
+
+    claim_report_digests = {record.get("report_digest") for record in claims}
+    if len(claim_report_digests) != 1 or None in claim_report_digests:
+        raise SemanticError("support.claims-stale", "claims.jsonl does not identify exactly one report revision")
+    report_digest = next(iter(claim_report_digests))
+    if citation_artifact.get("report_digest") != report_digest:
+        raise SemanticError(
+            "support.report-digest-mismatch",
+            "claims.jsonl and citation_map.json were generated from different report revisions",
+        )
 
     quotes_by_source: dict[str, list[dict[str, Any]]] = {}
     for record in evidence:
@@ -295,5 +343,12 @@ def check_claim_support(payload: dict[str, Any]) -> dict[str, Any]:
         "cross_script_supported_threshold": CROSS_SCRIPT_SUPPORTED,
     }
     report_path = run_dir / "claim_support.json"
-    write_json_atomic(report_path, {"summary": summary, "claims": scored, "findings": findings})
-    return {"status": _status(findings), "report_path": str(report_path), "summary": summary, "claims": scored, "findings": findings}
+    result = {
+        "status": _status(findings),
+        "report_digest": report_digest,
+        "summary": summary,
+        "claims": scored,
+        "findings": findings,
+    }
+    write_json_atomic(report_path, result)
+    return {**result, "report_path": str(report_path)}

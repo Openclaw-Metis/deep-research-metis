@@ -20,6 +20,7 @@ TRACKED_ARTIFACTS = (
     "sources.jsonl",
     "evidence.jsonl",
     "claims.jsonl",
+    "structure_check.json",
     "citation_map.json",
     "claim_support.json",
 )

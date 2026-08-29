@@ -241,6 +241,45 @@
       "expected_status": "FAILED",
       "expected_error_code": "function_failed",
       "notes": "JSONL 解析例外會讓 runner 以 exit code 2 回傳 FAILED envelope，不會產生 result 事件，也不會寫出半成品評分。"
+    },
+    {
+      "id": "trace-verification-stale-render",
+      "scenario": "verification-stale",
+      "domain_id": "deep-research-report",
+      "playbook_id": "full-research-report",
+      "request": "草稿在三項驗證後被修改，仍要求直接渲染 HTML",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "approval",
+        "verify-dependencies",
+        "resolve-entrypoint",
+        "invoke-python"
+      ],
+      "expected_status": "BLOCKED",
+      "expected_error_code": "render.verification-stale",
+      "notes": "render_html 以 report digest 驗證三項 gate freshness；approval 不得覆蓋 stale verification。"
+    },
+    {
+      "id": "trace-approval-binding-mismatch",
+      "scenario": "approval-binding",
+      "domain_id": "deep-research-report",
+      "playbook_id": "full-research-report",
+      "request": "沿用針對其他輸出或舊報告取得的 approval 來渲染目前報告",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "approval"
+      ],
+      "expected_status": "BLOCKED",
+      "expected_error_code": "approval_denied",
+      "notes": "runner 必須同時核對 approval scope、target、subject digest 與有效期限。"
     }
   ]
 }

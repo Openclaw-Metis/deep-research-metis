@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/report_verify.py",
   "callable": "check_citations",
-  "compatible_contract_digest": "sha256:38e97e28a6c464d16ecd0a0801ecd60d837df1f84a6c26a879b2227a7a7a6d9a",
+  "compatible_contract_digest": "sha256:cf1699c55320a80b0e6f9d151686925478fa7691c71f20a926ea86078edb6f40",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",
@@ -16,7 +16,17 @@
     "asset_paths": [
       "assets/lexicon"
     ],
-    "third_party_imports": []
+    "third_party_imports": [],
+    "bundled_paths": [
+      {
+        "path": "scripts/research_store.py",
+        "digest": "sha256:9778a410925b6386737f3909b0eb9adabf2544952b22463db7afd2b9e3e64ef3"
+      },
+      {
+        "path": "assets/lexicon/section_aliases.json",
+        "digest": "sha256:fd2e57c0b736cbd81de41f766d457f4d6525868184555afb2311b1546b1f1c61"
+      }
+    ]
   },
   "timeout_seconds": 60,
   "environment": {

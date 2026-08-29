@@ -121,10 +121,31 @@ def append_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> int:
     return payload.count("\n")
 
 
+def write_jsonl_atomic(path: Path, records: Iterable[dict[str, Any]]) -> int:
+    """Replace a derived JSONL snapshot atomically.
+
+    Source and evidence ledgers are append-only, but derived artifacts such as
+    claims must represent exactly one report revision. Replacing those files
+    prevents resumed verification from mixing stale and current claims.
+    """
+    payload = "".join(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n" for record in records)
+    temp_path = path.with_name(path.name + ".tmp")
+    temp_path.write_text(payload, encoding="utf-8", newline="\n")
+    os.replace(temp_path, path)
+    return payload.count("\n")
+
+
 def write_json_atomic(path: Path, data: dict[str, Any]) -> None:
     """Write through a temporary file and commit atomically to survive interruption."""
     temp_path = path.with_name(path.name + ".tmp")
     temp_path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
+    os.replace(temp_path, path)
+
+
+def write_text_atomic(path: Path, text: str) -> None:
+    """Atomically replace a text artifact after all validation has passed."""
+    temp_path = path.with_name(path.name + ".tmp")
+    temp_path.write_text(text, encoding="utf-8", newline="\n")
     os.replace(temp_path, path)
 
 
@@ -146,12 +167,25 @@ def read_report(payload: dict[str, Any], run_dir: Path | None) -> str:
 
 def canonical_url(url: str) -> str:
     """Normalise a URL so the same source keeps one stable identity across runs."""
-    parts = urlparse.urlsplit(url.strip())
-    if not parts.scheme or not parts.netloc:
+    raw = url.strip()
+    if any(ord(char) < 32 for char in raw):
+        raise SemanticError("source.url-invalid", "source url contains control characters")
+    try:
+        parts = urlparse.urlsplit(raw)
+        port = parts.port
+    except ValueError as exc:
+        raise SemanticError("source.url-invalid", f"source url is invalid: {url}") from exc
+    if parts.scheme.lower() not in {"http", "https"} or not parts.hostname:
         raise SemanticError("source.url-invalid", f"source url must be absolute: {url}")
-    netloc = parts.netloc.lower()
-    if netloc.startswith("www."):
-        netloc = netloc[4:]
+    if parts.username is not None or parts.password is not None:
+        raise SemanticError("source.url-credentials", "source url must not contain userinfo credentials")
+    host = parts.hostname.lower()
+    if host.startswith("www."):
+        host = host[4:]
+    if ":" in host and not host.startswith("["):
+        host = "[" + host + "]"
+    default_port = (parts.scheme.lower() == "http" and port == 80) or (parts.scheme.lower() == "https" and port == 443)
+    netloc = host if port is None or default_port else host + ":" + str(port)
     query = [
         (key, value)
         for key, value in urlparse.parse_qsl(parts.query, keep_blank_values=True)

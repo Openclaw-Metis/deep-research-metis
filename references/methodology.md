@@ -10,7 +10,7 @@
 | `retrieval` | 已取得達到 `min_sources` 的可追溯來源，或已記錄未達標原因 | `sources.jsonl` |
 | `evidence` | 每個預期引用的來源至少有一則逐字引文 | `evidence.jsonl` |
 | `drafting` | 草稿完成且每個事實主張都帶行內引用 | 報告 Markdown |
-| `verification` | 結構、引用與支撐度三項檢查都已執行且結果如實記錄 | `claims.jsonl`、`citation_map.json`、`claim_support.json` |
+| `verification` | 結構、引用與支撐度三項檢查都已執行，且三份結果綁定同一 report digest | `claims.jsonl`、`structure_check.json`、`citation_map.json`、`claim_support.json` |
 | `delivery` | 交付物已產生，或已說明未取得寫入授權 | 報告 HTML、`run_manifest.json` |
 
 ## 模式預算
