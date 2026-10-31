@@ -18,7 +18,7 @@
     "bundled_paths": [
       {
         "path": "scripts/research_store.py",
-        "digest": "sha256:9778a410925b6386737f3909b0eb9adabf2544952b22463db7afd2b9e3e64ef3"
+        "digest": "sha256:f85ff6d530e58b400a7c0d5a4eed37663e83a1888540dd0ce7d9e7976a134bed"
       }
     ]
   },

@@ -8,7 +8,8 @@
     "analysis": ["analysis", "分析", "判讀", "交叉比對"],
     "limitations": ["limitations", "限制", "注意事項"],
     "methodology": ["methodology", "方法", "檢索紀錄"],
-    "bibliography": ["bibliography", "參考來源", "參考文獻", "資料來源"]
+    "bibliography": ["bibliography", "references", "reference list", "works cited", "sources", "參考來源", "參考文獻", "參考資料", "引用文獻", "資料來源", "資料出處"]
   },
+  "process_section_markers": ["methodology", "研究方法", "檢索紀錄"],
   "placeholder_markers": ["TODO", "TBD", "FIXME", "XXX", "待補", "待填", "待確認"]
 }

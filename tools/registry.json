@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "registry_version": "2026.8.30",
+  "registry_version": "2026.10.31",
   "skill_id": "deep-research-metis",
   "domain_scope": {
     "domain_id": "deep-research-report",
@@ -20,10 +20,10 @@
       "contract_ref": "tools/contracts/research-plan.build_plan.json",
       "contract_digest": "sha256:8ae4bc6c8830504e21bd31b7ea9c8da87b8585493fc85be154aa0e5b37fe67c7",
       "runtime_ref": "tools/runtime/research-plan.build_plan.json",
-      "code_digest": "sha256:95f917d047e281d571847ac0a976d434324659eb1421b42ae7d9cc3a669327f4",
+      "code_digest": "sha256:6eb316c4b72edcaaeda88bbc293c9f7741e9a225d5772c29228bc5cf4e6c6c8d",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:75f322c6496e9e62cfc9c032eb243458e735c27f4b994b31ee4cde764a37ab04"
+      "runtime_digest": "sha256:d34a1427037534642469db8640af2859176363192e22af85847f47ff7428fbfd"
     },
     {
       "id": "source-ledger.register_sources",
@@ -37,10 +37,10 @@
       "contract_ref": "tools/contracts/source-ledger.register_sources.json",
       "contract_digest": "sha256:5af4f55eb7d5eafef50657f55a7733edc2e07598c0192ee9f02648be8241960b",
       "runtime_ref": "tools/runtime/source-ledger.register_sources.json",
-      "code_digest": "sha256:1c907889d847335099db69f56f28b66da3f905c030dc4ce5b632c8974c8b0961",
+      "code_digest": "sha256:41eb7dab4c606944f388efce8686279f412b5f15e45f8e09ca317decaed42f34",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:965b7d1439c200a7c599e9c8b98c71701f77f567f81a616aba75b1f6980008bd"
+      "runtime_digest": "sha256:36d6ceb0e14b8f0011f4104a81d83b2bcb0bbae57d0d8ae1103dc9fd806c3579"
     },
     {
       "id": "evidence-store.append_evidence",
@@ -57,7 +57,7 @@
       "code_digest": "sha256:6eecc576b5480f4687467d7044866d42e05827ca59048101810852922ad318c7",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:d8d825dccac74fbf2748cfd7720df8bb79953419d6489e9b33d8de83e29a42fc"
+      "runtime_digest": "sha256:a46444baa119c7f44279ada0469716425221e3aad8e708aac0aa075df6587684"
     },
     {
       "id": "claim-ledger.extract_claims",
@@ -71,10 +71,10 @@
       "contract_ref": "tools/contracts/claim-ledger.extract_claims.json",
       "contract_digest": "sha256:f7e64c73be7b7f1112c4692a30ffd331046ba072d337d23b120265921caabedf",
       "runtime_ref": "tools/runtime/claim-ledger.extract_claims.json",
-      "code_digest": "sha256:15b699a8a7410f7b49900d572bea37d7270568cc9fd513df119ee0811b923201",
+      "code_digest": "sha256:0e0c42f552aad9170a6543915137f1a08fa20d9adac633a864f17e41d737b1bd",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:0e7228e4cea764b28c1cfaf6225b9a237115e7c523ab7f92ea2deb4cd8746edd"
+      "runtime_digest": "sha256:11f31b0585df15fb585c8d59aadbff1dacca43baff5a9a04d107d2e47e065eda"
     },
     {
       "id": "report-verify.check_structure",
@@ -88,10 +88,10 @@
       "contract_ref": "tools/contracts/report-verify.check_structure.json",
       "contract_digest": "sha256:c2bc0a6bd35c2c8cf609e87e2a3969c50ee60b1d95c96c1f09d7ae7c4444aa84",
       "runtime_ref": "tools/runtime/report-verify.check_structure.json",
-      "code_digest": "sha256:74d0fde7b88efdc2d66e68ebe3d32f393e32c25894ebe98266f23342bf782015",
+      "code_digest": "sha256:9ddb69a1b74725285722c4686f7dd031242549e5d9928a9b6d71781c1c3f4f7f",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:e7e52094c353f115ce4f8c3b82075ec9c173609fb1740f4961774b8c4c0435ed"
+      "runtime_digest": "sha256:381c40903b9d7eca530aab59b0a3c13d411b77ccb97186a217c7f8d94ade5514"
     },
     {
       "id": "report-verify.check_citations",
@@ -105,10 +105,10 @@
       "contract_ref": "tools/contracts/report-verify.check_citations.json",
       "contract_digest": "sha256:cf1699c55320a80b0e6f9d151686925478fa7691c71f20a926ea86078edb6f40",
       "runtime_ref": "tools/runtime/report-verify.check_citations.json",
-      "code_digest": "sha256:74d0fde7b88efdc2d66e68ebe3d32f393e32c25894ebe98266f23342bf782015",
+      "code_digest": "sha256:9ddb69a1b74725285722c4686f7dd031242549e5d9928a9b6d71781c1c3f4f7f",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:47841ca69f19fb1a47c7cfcfc0af3976c5bef465a11f67f45e2bf7da51869d9b"
+      "runtime_digest": "sha256:ca6f449a4556836b50aceea012b49c0652077b77904aa7c33a22ce48dd72d139"
     },
     {
       "id": "report-verify.check_claim_support",
@@ -122,10 +122,10 @@
       "contract_ref": "tools/contracts/report-verify.check_claim_support.json",
       "contract_digest": "sha256:884b40eac7ec8c05c13fca227d8e6116aeefb6a196bdcadd00adb8ed85a470a2",
       "runtime_ref": "tools/runtime/report-verify.check_claim_support.json",
-      "code_digest": "sha256:74d0fde7b88efdc2d66e68ebe3d32f393e32c25894ebe98266f23342bf782015",
+      "code_digest": "sha256:9ddb69a1b74725285722c4686f7dd031242549e5d9928a9b6d71781c1c3f4f7f",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:fd268ccdf056df6d8122e8f97dbe283c898412fdfd257907a6833b8ae05ccd31"
+      "runtime_digest": "sha256:3157b1dce7b4c8f88fb5521bde16f4e99f515b4d85a716201db8c0e5afd51f07"
     },
     {
       "id": "report-render.render_html",
@@ -138,10 +138,10 @@
       "contract_ref": "tools/contracts/report-render.render_html.json",
       "contract_digest": "sha256:6d19d8388c36578a26feff9c7703d9c92969533e12926e1a7353cf29d3197926",
       "runtime_ref": "tools/runtime/report-render.render_html.json",
-      "code_digest": "sha256:020fe98d3adb597bedd8f960c566f0cbab2773ac45b1d5ebb6a2639d5e425cb5",
+      "code_digest": "sha256:2068fa8b7ff97e72bf15ca63ad426f579b0a19d49a11b4b3b0d36c9eae45687b",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:90ee204aa294586a669b80726a9f68234475ad88b4c2359853a5f0bf9ea8ed32"
+      "runtime_digest": "sha256:4684621d22e2c98ea8d14c72aa08785171cb4c021496e10254ee77dfa69fcfdf"
     },
     {
       "id": "run-manifest.write_manifest",
@@ -156,10 +156,10 @@
       "contract_ref": "tools/contracts/run-manifest.write_manifest.json",
       "contract_digest": "sha256:b635bca0e8d5cc8adc9afe750c86cede61dc28192bf359fbb0b0b5d45ba2641e",
       "runtime_ref": "tools/runtime/run-manifest.write_manifest.json",
-      "code_digest": "sha256:7770a0dfcf3d4174c257dd89c5fc36472d78acad8c89d47e78b42251ef2284c7",
+      "code_digest": "sha256:57525cac337b7ae6bbb5c6dfb41079e0053168829b524ba9208be035b0f17902",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:bdf64b6e4f460ea0524996508c28a218e81c0c988903ca4b112472da559ef431"
+      "runtime_digest": "sha256:e723136dc2e85c4d3bf17b7cfebed051f462e7f33e2b69137b3f8daa2c764933"
     }
   ]
 }

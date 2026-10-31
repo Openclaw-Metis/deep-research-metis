@@ -20,11 +20,11 @@
     "bundled_paths": [
       {
         "path": "scripts/research_store.py",
-        "digest": "sha256:9778a410925b6386737f3909b0eb9adabf2544952b22463db7afd2b9e3e64ef3"
+        "digest": "sha256:f85ff6d530e58b400a7c0d5a4eed37663e83a1888540dd0ce7d9e7976a134bed"
       },
       {
         "path": "assets/lexicon/section_aliases.json",
-        "digest": "sha256:fd2e57c0b736cbd81de41f766d457f4d6525868184555afb2311b1546b1f1c61"
+        "digest": "sha256:dbb653d043bcc0209741046cf6c1152acacbfa56a677e005374966e0fcd2e106"
       }
     ]
   },

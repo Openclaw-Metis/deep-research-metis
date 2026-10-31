@@ -24,6 +24,8 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_ROOT = SKILL_ROOT / "scripts"
 SECRET_KEY_HINTS = ("api_key", "apikey", "token", "secret", "password", "credential", "access_key")
 STATUS_EXIT = {"OK": 0, "FAILED": 2, "BLOCKED": 3}
+SUMMARY_FIELDS = ("counts", "summary")
+MAX_SUMMARY_FINDINGS = 40
 JSON_TYPES = {
     "object": dict,
     "array": list,
@@ -186,6 +188,26 @@ def _redact(value: Any) -> tuple[Any, bool]:
     return value, redacted
 
 
+def _summarize(result: Any, inline_bytes: int) -> dict[str, Any]:
+    """Shrink an oversized result without losing the verdict a caller acts on.
+
+    Dropping everything but the key names would leave a FAIL indistinguishable
+    from a PASS on large reports, so status, counts, artifact paths and the first
+    findings stay inline and the full detail remains in the persisted artifact.
+    """
+    if not isinstance(result, dict):
+        return {"summarized": True, "omitted_keys": [], "inline_bytes": inline_bytes}
+    kept = {key: value for key, value in result.items() if not isinstance(value, (dict, list)) or key in SUMMARY_FIELDS}
+    findings = result.get("findings")
+    if isinstance(findings, list):
+        kept["findings"] = findings[:MAX_SUMMARY_FINDINGS]
+        kept["findings_total"] = len(findings)
+    kept["summarized"] = True
+    kept["omitted_keys"] = sorted(set(result) - set(kept))
+    kept["inline_bytes"] = inline_bytes
+    return kept
+
+
 def _apply_result_policy(contract: dict[str, Any], result: Any) -> tuple[Any, dict[str, Any]]:
     policy = contract.get("result_policy", {})
     if policy.get("validate_output_schema"):
@@ -204,7 +226,7 @@ def _apply_result_policy(contract: dict[str, Any], result: Any) -> tuple[Any, di
         if action == "truncate":
             result = {"truncated": True, "preview": serialized[:max_inline]}
         else:
-            result = {"summarized": True, "keys": sorted(result)[:40] if isinstance(result, dict) else [], "inline_bytes": metadata["inline_bytes"]}
+            result = _summarize(result, metadata["inline_bytes"])
     return result, metadata
 
 

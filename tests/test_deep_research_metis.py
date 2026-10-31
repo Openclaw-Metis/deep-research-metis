@@ -19,14 +19,18 @@ from unittest import mock
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL_ROOT / "scripts"))
+sys.path.insert(0, str(SKILL_ROOT / "tests"))
 
 import claim_ledger  # noqa: E402
 import evidence_store  # noqa: E402
 import report_render  # noqa: E402
 import report_verify  # noqa: E402
+import research_plan  # noqa: E402
 import research_store  # noqa: E402
 import run_function  # noqa: E402
+import run_manifest  # noqa: E402
 import source_ledger  # noqa: E402
+import verification_benchmark  # noqa: E402
 
 RUNNER = SKILL_ROOT / "scripts" / "run_function.py"
 
@@ -109,6 +113,77 @@ class CanonicalUrlTests(unittest.TestCase):
         for url in ("ftp://example.org/report", "https://user:password@example.org/report"):
             with self.subTest(url=url), self.assertRaises(research_store.SemanticError):
                 research_store.canonical_url(url)
+
+
+    def test_cjk_and_percent_encoded_paths_share_one_identity(self) -> None:
+        self.assertEqual(
+            research_store.canonical_url("https://example.org/wiki/資料中心"),
+            research_store.canonical_url("https://example.org/wiki/%e8%b3%87%e6%96%99%e4%b8%ad%e5%bf%83"),
+        )
+
+
+class SourceAuthorityTests(unittest.TestCase):
+    def tiers(self, *urls: str) -> list[str]:
+        with tempfile.TemporaryDirectory() as workspace:
+            registered = source_ledger.register_sources(
+                {"run_dir": workspace, "sources": [{"url": url, "title": "T"} for url in urls]}
+            )
+        return [record["authority_signals"]["tier"] for record in registered["registered"]]
+
+    def test_hosts_match_on_whole_domain_labels(self) -> None:
+        self.assertEqual(
+            self.tiers(
+                "https://www.netflix.com/tudum",
+                "https://www.fake.gov.evil.com/a",
+                "https://www.moea.gov.tw/a",
+                "https://x.com/a",
+            ),
+            ["secondary", "secondary", "primary", "community"],
+        )
+
+
+class CitationParsingTests(unittest.TestCase):
+    def test_every_citation_form_expands_to_numbers(self) -> None:
+        cases = {"[1]": [1], "[1, 3]": [1, 3], "[2-4]": [2, 3, 4], "[1][2]": [1, 2], "［6］": [6], "【7】": [7], "[1、3-4]": [1, 3, 4]}
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(research_store.citation_numbers(text), expected)
+
+    def test_years_in_brackets_and_absurd_ranges_do_not_expand(self) -> None:
+        self.assertEqual(research_store.citation_numbers("[2025]"), [])
+        self.assertEqual(research_store.citation_numbers("[1-999]"), [1, 999])
+
+
+class SentenceSplitTests(unittest.TestCase):
+    def test_decimals_versions_and_domains_do_not_end_a_sentence(self) -> None:
+        for sentence in ("用電量達 3.5 TWh，成長 12.4%。", "arxiv.org hosts version 2.1 of the paper.", "U.S. demand rose, e.g. in Texas."):
+            with self.subTest(sentence=sentence):
+                self.assertEqual(claim_ledger._split_sentences(sentence), [sentence])
+
+    def test_trailing_citation_stays_with_its_sentence(self) -> None:
+        self.assertEqual(claim_ledger._split_sentences("甲成長。[1] 乙下滑 [2]。"), ["甲成長。[1]", "乙下滑 [2]。"])
+
+    def test_short_cited_claim_is_not_discarded(self) -> None:
+        with tempfile.TemporaryDirectory() as workspace:
+            result = claim_ledger.extract_claims({"run_dir": workspace, "report_markdown": "## 發現\n\n甲成長 5% [1]。\n"})
+        self.assertEqual(result["counts"]["cited"], 1)
+
+
+class QuantityTests(unittest.TestCase):
+    def test_years_and_cross_references_are_not_quantities(self) -> None:
+        for text in ("2025 年的政策方向仍未明朗。", "詳見第 3 節與表 2。", "between 2023 and 2025", "See Section 4 and Figure 2."):
+            with self.subTest(text=text):
+                self.assertEqual(research_store.quantity_values(text), [])
+
+    def test_year_shaped_measurements_stay_quantities(self) -> None:
+        self.assertEqual(research_store.quantity_values("裝置容量達 2000 MW"), [2000.0])
+
+    def test_recent_is_not_a_hedge(self) -> None:
+        self.assertEqual(research_store.unmatched_quantities("近年成長 12%", ["成長 12.4%"]), [12.0])
+        self.assertEqual(research_store.unmatched_quantities("成長近 12%", ["成長 12.4%"]), [])
+
+    def test_thousands_separators_compare_by_value(self) -> None:
+        self.assertEqual(research_store.unmatched_quantities("用電 1,280 GWh", ["用電 1280 GWh"]), [])
 
 
 class BilingualMeasureTests(unittest.TestCase):
@@ -232,6 +307,79 @@ class VerificationTests(unittest.TestCase):
             self.assertIn("22%", persisted[0]["text"])
             self.assertNotIn("18%", persisted[0]["text"])
 
+    def test_table_header_is_not_a_claim_and_rows_are(self) -> None:
+        report = "## 發現\n\n| 廠商 2025 | 市占 |\n| --- | --- |\n| 甲 | 45% |\n"
+        with tempfile.TemporaryDirectory() as workspace:
+            result = claim_ledger.extract_claims({"run_dir": workspace, "report_markdown": report, "require_cited_claims": False})
+        self.assertEqual([(claim["text"], claim["origin"]) for claim in result["claims"]], [("甲 45%", "table")])
+
+    def test_body_section_with_bibliography_alias_stays_in_scope(self) -> None:
+        report = "## 資料來源比較\n\n甲機構低估了 30% 的用電量。\n\n## 參考來源\n\n[1] 報告 https://example.org/a\n"
+        titles, lines = research_store.find_bibliography(report)
+        self.assertEqual(titles, ["參考來源"])
+        self.assertEqual(len(lines), 1)
+
+    def test_grouped_bibliography_with_subheadings_is_recognised(self) -> None:
+        report = "## 參考來源\n\n### 官方\n\n[1] 報告 https://example.org/a\n\n### 業界\n\n[2] 報告 https://example.org/b\n"
+        self.assertEqual(len(research_store.find_bibliography(report)[1]), 2)
+
+    def test_structure_rejects_a_body_section_posing_as_bibliography(self) -> None:
+        result = report_verify.check_structure(
+            {"report_markdown": "## 資料來源比較\n\n各機構口徑不同 [1]。\n", "required_sections": ["bibliography"]}
+        )
+        self.assertTrue(any(item["code"] == "section_missing" for item in result["findings"]))
+
+    def test_citation_check_warns_when_sources_fall_below_the_plan(self) -> None:
+        report = "## 發現\n\n甲機構指出成長趨勢明確 [1]。\n\n## 參考來源\n\n[1] 報告 https://example.org/a\n"
+        with tempfile.TemporaryDirectory() as workspace:
+            research_plan.build_plan({"run_dir": workspace, "question": "Q", "sub_questions": ["a"], "mode": "deep"})
+            source_ledger.register_sources({"run_dir": workspace, "sources": [{"url": "https://example.org/a", "title": "A"}]})
+            result = report_verify.check_citations({"run_dir": workspace, "report_markdown": report})
+        self.assertEqual(result["status"], "PASS")
+        finding = next(item for item in result["findings"] if item["code"] == "source_count_below_plan")
+        self.assertEqual((finding["resolved_sources"], finding["min_sources"]), (1, 20))
+
+    def test_changed_digit_fails_despite_full_lexical_overlap(self) -> None:
+        report = REPORT.replace("成長 18%", "成長 81%")
+        with tempfile.TemporaryDirectory() as workspace:
+            registered = source_ledger.register_sources(
+                {"run_dir": workspace, "sources": [{"url": "https://example.org/report", "title": "年報"}]}
+            )
+            evidence_store.append_evidence(
+                {
+                    "run_dir": workspace,
+                    "evidence": [
+                        {"source_id": registered["registered"][0]["source_id"], "quote": "甲機構指出離岸風電併網容量在 2026 年成長 18%。"}
+                    ],
+                }
+            )
+            claim_ledger.extract_claims({"run_dir": workspace, "report_markdown": report})
+            report_verify.check_citations({"run_dir": workspace, "report_markdown": report})
+            result = report_verify.check_claim_support({"run_dir": workspace})
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["claims"][0]["verdict"], "partial")
+        self.assertEqual(result["claims"][0]["unmatched_numbers"], [81.0])
+        self.assertTrue(any(item["code"] == "claim_number_unmatched" for item in result["findings"]))
+
+    def test_support_verdict_does_not_depend_on_quote_order(self) -> None:
+        english = "Quarterly revenue at the unrelated firm stayed essentially flat this year."
+        chinese = "這段中文引文談的是完全無關的海洋生態保育議題與志工活動。"
+        report = "## 發現\n\n資料中心的需量反應能力仍然有限 [1]。\n\n## 參考來源\n\n[1] 報告 https://example.org/a\n"
+        verdicts = []
+        for quotes in ((english, chinese), (chinese, english)):
+            with tempfile.TemporaryDirectory() as workspace:
+                registered = source_ledger.register_sources(
+                    {"run_dir": workspace, "sources": [{"url": "https://example.org/a", "title": "A"}]}
+                )
+                source_id = registered["registered"][0]["source_id"]
+                evidence_store.append_evidence(
+                    {"run_dir": workspace, "evidence": [{"source_id": source_id, "quote": quote} for quote in quotes]}
+                )
+                claim_ledger.extract_claims({"run_dir": workspace, "report_markdown": report})
+                report_verify.check_citations({"run_dir": workspace, "report_markdown": report})
+                verdicts.append(report_verify.check_claim_support({"run_dir": workspace})["claims"][0]["verdict"])
+        self.assertEqual(verdicts, ["unsupported", "unsupported"])
+
     def test_claim_support_rejects_mismatched_report_digests(self) -> None:
         with tempfile.TemporaryDirectory() as workspace:
             registered = source_ledger.register_sources(
@@ -251,6 +399,78 @@ class VerificationTests(unittest.TestCase):
             with self.assertRaises(research_store.SemanticError) as caught:
                 report_verify.check_claim_support({"run_dir": workspace})
             self.assertEqual(caught.exception.rule_id, "support.report-digest-mismatch")
+
+
+class RunStateTests(unittest.TestCase):
+    def test_manifest_rejects_a_gate_that_contradicts_its_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as workspace:
+            Path(workspace, "claim_support.json").write_text('{"status": "FAIL", "report_digest": "sha256:0"}', encoding="utf-8")
+            with self.assertRaises(research_store.SemanticError) as caught:
+                run_manifest.write_manifest(
+                    {"run_dir": workspace, "phase": "verification", "gate_results": [{"gate": "report-verify.check_claim_support", "status": "PASS"}]}
+                )
+            self.assertEqual(caught.exception.rule_id, "manifest.gate-status-mismatch")
+
+    def test_manifest_rejects_a_pass_with_no_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as workspace, self.assertRaises(research_store.SemanticError):
+            run_manifest.write_manifest(
+                {"run_dir": workspace, "phase": "verification", "gate_results": [{"gate": "check_structure", "status": "PASS"}]}
+            )
+
+    def test_manifest_records_a_true_gate_and_the_verification_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as workspace:
+            Path(workspace, "claim_support.json").write_text('{"status": "FAIL", "report_digest": "sha256:0"}', encoding="utf-8")
+            run_manifest.write_manifest(
+                {"run_dir": workspace, "phase": "verification", "gate_results": [{"gate": "check_claim_support", "status": "FAIL"}]}
+            )
+            manifest = json.loads(Path(workspace, "run_manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["verification"]["claim_support.json"]["status"], "FAIL")
+
+    def test_plan_refuses_a_second_question_in_one_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as workspace:
+            first = {"run_dir": workspace, "question": "問題甲", "sub_questions": ["a"]}
+            research_plan.build_plan(first)
+            with self.assertRaises(research_store.SemanticError) as caught:
+                research_plan.build_plan({**first, "question": "問題乙"})
+            self.assertEqual(caught.exception.rule_id, "plan.run-dir-reused")
+            replaced = research_plan.build_plan({**first, "question": "問題乙", "replace_plan": True})
+            self.assertEqual(replaced["plan"]["question"], "問題乙")
+
+    def test_plan_rerun_keeps_its_creation_time(self) -> None:
+        with tempfile.TemporaryDirectory() as workspace:
+            payload = {"run_dir": workspace, "question": "問題", "sub_questions": ["a"]}
+            first = research_plan.build_plan(payload)["plan"]
+            with mock.patch.object(research_plan, "now_utc", return_value="2099-01-01T00:00:00Z"):
+                second = research_plan.build_plan(payload)["plan"]
+        self.assertEqual(first["created_at"], second["created_at"])
+
+
+class RenderTests(unittest.TestCase):
+    def test_anchors_live_on_bibliography_entries_only(self) -> None:
+        report = "# 題目\n\n- 甲機構的主張內容 [1]。\n\n## 參考來源\n\n[1] 報告一 https://example.org/a\n[2] 報告二 https://example.org/b\n"
+        blocks, _ = report_render._render_blocks(report)
+        page = "\n".join(blocks)
+        self.assertEqual(page.count('id="ref-1"'), 1)
+        self.assertEqual(page.count('id="ref-2"'), 1)
+        self.assertEqual(page.count('class="ref"'), 2)
+        self.assertLess(page.index('href="#ref-1"'), page.index('id="ref-1"'))
+        self.assertIn('<a href="https://example.org/a" rel="noreferrer">', page)
+
+    def test_grouped_citation_links_each_number(self) -> None:
+        self.assertEqual(report_render._inline("甲 [1, 2]").count('href="#ref-'), 2)
+
+    def test_quotes_cannot_break_out_of_an_autolinked_href(self) -> None:
+        rendered = report_render._inline('見 https://example.org/a"onmouseover="alert(1)')
+        self.assertIn('href="https://example.org/a"', rendered)
+        self.assertNotIn('onmouseover="alert(1)"></a>', rendered)
+        self.assertNotIn('<a href="https://example.org/a"onmouseover', rendered)
+
+    def test_markdown_link_with_query_is_not_double_escaped(self) -> None:
+        self.assertIn('href="https://example.org/a?x=1&amp;y=2"', report_render._inline("[來源](https://example.org/a?x=1&y=2)"))
+
+    def test_default_footer_follows_the_report_language_and_claims_no_more_than_was_checked(self) -> None:
+        self.assertIn("not a semantic review", report_render.DEFAULT_FOOTERS["en"])
+        self.assertNotIn("所有主張", report_render.DEFAULT_FOOTERS["zh-TW"])
 
 
 class RunnerGuardTests(unittest.TestCase):
@@ -328,6 +548,24 @@ class RunnerGuardTests(unittest.TestCase):
             self.assertEqual(envelope["status"], "OK")
             self.assertTrue(Path(workspace, "report.html").is_file())
 
+    def test_oversized_result_keeps_its_verdict(self) -> None:
+        result = {
+            "status": "FAIL",
+            "report_path": "claim_support.json",
+            "summary": {"unsupported": 900},
+            "claims": [{"text": "x" * 200} for _ in range(900)],
+            "findings": [{"code": "claim_unsupported"} for _ in range(900)],
+        }
+        contract = {"result_policy": {"max_inline_bytes": 1024, "overflow_action": "summarize"}}
+        summarized, metadata = run_function._apply_result_policy(contract, result)
+        self.assertEqual(metadata["overflow_action"], "summarize")
+        self.assertEqual(summarized["status"], "FAIL")
+        self.assertEqual(summarized["summary"], {"unsupported": 900})
+        self.assertEqual(summarized["report_path"], "claim_support.json")
+        self.assertEqual(summarized["findings_total"], 900)
+        self.assertEqual(len(summarized["findings"]), run_function.MAX_SUMMARY_FINDINGS)
+        self.assertEqual(summarized["omitted_keys"], ["claims"])
+
     def test_semantic_failure_reports_the_failed_rule(self) -> None:
         with tempfile.TemporaryDirectory() as workspace:
             code, envelope = call_runner(
@@ -369,6 +607,14 @@ class RunnerGuardTests(unittest.TestCase):
                     {"run_dir": workspace, "question": "問題", "sub_questions": ["子問題"]},
                 )
         self.assertEqual(caught.exception.code, "dependency_digest_mismatch")
+
+
+class VerificationBenchmarkTests(unittest.TestCase):
+    def test_development_split_agrees_with_every_label(self) -> None:
+        data = json.loads(verification_benchmark.BENCHMARK.read_text(encoding="utf-8"))
+        cases = [case for case in data["cases"] if case["split"] == "development"]
+        report = verification_benchmark.score(SKILL_ROOT, cases)
+        self.assertEqual(report["disagreements"], [])
 
 
 def research_store_digest(path: Path) -> str:

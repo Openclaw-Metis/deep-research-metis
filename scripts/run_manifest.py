@@ -23,8 +23,15 @@ TRACKED_ARTIFACTS = (
     "structure_check.json",
     "citation_map.json",
     "claim_support.json",
+    "report.md",
+    "report.html",
 )
 GATE_STATUSES = ("PASS", "FAIL", "BLOCKED", "SKIPPED")
+GATE_ARTIFACTS = {
+    "check_structure": "structure_check.json",
+    "check_citations": "citation_map.json",
+    "check_claim_support": "claim_support.json",
+}
 
 
 def _artifact_digests(run_dir) -> list[dict[str, Any]]:
@@ -43,6 +50,38 @@ def _artifact_digests(run_dir) -> list[dict[str, Any]]:
     return records
 
 
+def _gate_artifact(gate: dict[str, Any]) -> str | None:
+    name = str(gate.get("gate", ""))
+    return GATE_ARTIFACTS.get(name.rsplit(".", 1)[-1])
+
+
+def _reject_contradicted_gates(run_dir, gate_results: list[dict[str, Any]]) -> None:
+    """Hold verification gates to their artifacts so a manifest cannot overstate a run."""
+    for gate in gate_results:
+        artifact_name = _gate_artifact(gate)
+        if artifact_name is None or gate["status"] not in ("PASS", "FAIL"):
+            continue
+        artifact_path = run_dir / artifact_name
+        observed = None
+        if artifact_path.is_file():
+            observed = json.loads(artifact_path.read_text(encoding="utf-8")).get("status")
+        if observed != gate["status"]:
+            raise SemanticError(
+                "manifest.gate-status-mismatch",
+                str(gate.get("gate")) + " is recorded as " + gate["status"] + " but " + artifact_name + " reports " + str(observed),
+            )
+
+
+def _verification_snapshot(run_dir) -> dict[str, Any]:
+    snapshot: dict[str, Any] = {}
+    for name in GATE_ARTIFACTS.values():
+        path = run_dir / name
+        if path.is_file():
+            artifact = json.loads(path.read_text(encoding="utf-8"))
+            snapshot[name] = {"status": artifact.get("status"), "report_digest": artifact.get("report_digest")}
+    return snapshot
+
+
 def write_manifest(payload: dict[str, Any]) -> dict[str, Any]:
     """Merge one phase result into the run manifest without discarding earlier phases."""
     run_dir = resolve_run_dir(payload)
@@ -58,6 +97,7 @@ def write_manifest(payload: dict[str, Any]) -> dict[str, Any]:
     for gate in gate_results:
         if not isinstance(gate, dict) or gate.get("status") not in GATE_STATUSES:
             raise SemanticError("manifest.gate-status-invalid", "each gate result needs a status of " + "/".join(GATE_STATUSES))
+    _reject_contradicted_gates(run_dir, gate_results)
 
     manifest_path = run_dir / "run_manifest.json"
     manifest: dict[str, Any] = {"schema_version": "1.0.0", "phases": {}, "gate_results": [], "created_at": now_utc()}
@@ -79,6 +119,7 @@ def write_manifest(payload: dict[str, Any]) -> dict[str, Any]:
     manifest["gate_results"] = [gate for gate in manifest.get("gate_results", []) if gate.get("phase") != phase]
     manifest["gate_results"].extend({**gate, "phase": phase} for gate in gate_results)
     manifest["artifacts"] = _artifact_digests(run_dir)
+    manifest["verification"] = _verification_snapshot(run_dir)
     manifest["updated_at"] = now_utc()
     write_json_atomic(manifest_path, manifest)
     return {

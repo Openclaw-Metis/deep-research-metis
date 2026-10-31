@@ -15,9 +15,14 @@ import re
 from typing import Any
 
 from research_store import (
+    CITATION_MARK,
+    FENCE,
     SemanticError,
+    bibliography_entry_number,
     bilingual_length,
+    citation_numbers,
     digest,
+    find_bibliography,
     read_report,
     require,
     resolve_inside,
@@ -30,11 +35,17 @@ LIST_ITEM = re.compile(r"^\s*[-*+]\s+(.*)$")
 ORDERED_ITEM = re.compile(r"^\s*\d+[.)]\s+(.*)$")
 TABLE_ROW = re.compile(r"^\s*\|(.+)\|\s*$")
 TABLE_DIVIDER = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
-FENCE = re.compile(r"^\s*(```|~~~)")
+ENTRY_MARKER = re.compile(r"^\s*(?:[-*+]\s+)?(?:[\[［【]\s*\d{1,3}\s*[\]］】]|\d{1,3}[.)、])\s*")
 INLINE_CODE = re.compile(r"`([^`]+)`")
 BOLD = re.compile(r"\*\*([^*]+)\*\*")
 LINK = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
-CITATION = re.compile(r"\[(\d{1,3})\]")
+# Quotes stay out of the match: they survive html.escape(quote=False) and would
+# otherwise close the href attribute built from this text.
+BARE_URL = re.compile(r"""(?<!["'>=])https?://[^\s<>"'`)）］】」』，。；、]*[^\s<>"'`)）］】」』，。；、.,;:!?]""")
+DEFAULT_FOOTERS = {
+    "zh-TW": "本報告由 deep-research-metis 產出，已通過結構、引用與支撐度檢查。支撐度檢查比對字詞與數字，不等同語意查證。",
+    "en": "Generated with deep-research-metis. Structure, citation and claim-support checks passed; claim support compares wording and figures and is not a semantic review.",
+}
 
 PAGE_STYLE = """
 :root { color-scheme: light dark; --ink: #16202b; --muted: #5a6b7c; --line: #d7dee6; --bg: #ffffff; --accent: #1f5f8b; }
@@ -50,6 +61,7 @@ table { border-collapse: collapse; display: block; overflow-x: auto; width: 100%
 th, td { border: 1px solid var(--line); padding: 0.5rem 0.7rem; text-align: left; }
 code { background: rgba(127, 181, 218, 0.16); border-radius: 4px; padding: 0.1rem 0.35rem; }
 pre { background: rgba(127, 181, 218, 0.12); border-radius: 8px; overflow-x: auto; padding: 1rem; }
+.ref { margin: 0.35rem 0; overflow-wrap: anywhere; }
 footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; margin-top: 3rem; padding-top: 1rem; }
 """
 
@@ -85,10 +97,27 @@ def _inline(text: str) -> str:
     escaped = INLINE_CODE.sub(lambda match: "<code>" + match.group(1) + "</code>", escaped)
     escaped = BOLD.sub(lambda match: "<strong>" + match.group(1) + "</strong>", escaped)
     escaped = LINK.sub(
-        lambda match: '<a href="' + html.escape(match.group(2), quote=True) + '" rel="noreferrer">' + match.group(1) + "</a>",
+        lambda match: '<a href="' + match.group(2).replace('"', "&quot;") + '" rel="noreferrer">' + match.group(1) + "</a>",
         escaped,
     )
-    return CITATION.sub(lambda match: '<sup><a href="#ref-' + match.group(1) + '">[' + match.group(1) + "]</a></sup>", escaped)
+    escaped = BARE_URL.sub(lambda match: '<a href="' + match.group(0) + '" rel="noreferrer">' + match.group(0) + "</a>", escaped)
+    return CITATION_MARK.sub(_citation_links, escaped)
+
+
+def _citation_links(match: re.Match[str]) -> str:
+    return "".join(
+        '<sup><a href="#ref-' + str(number) + '">[' + str(number) + "]</a></sup>"
+        for number in citation_numbers(match.group(0))
+    )
+
+
+def _bibliography_entry(line: str) -> str:
+    """Render one entry with the anchor inline citations point at."""
+    number = bibliography_entry_number(line)
+    body = _inline(ENTRY_MARKER.sub("", line.strip()))
+    if number is None:
+        return '<p class="ref">' + body + "</p>"
+    return '<p class="ref" id="ref-' + str(number) + '">[' + str(number) + "] " + body + "</p>"
 
 
 def _render_blocks(report: str) -> tuple[list[str], int]:
@@ -100,6 +129,7 @@ def _render_blocks(report: str) -> tuple[list[str], int]:
     in_fence = False
     code_lines: list[str] = []
     heading_count = 0
+    _, bibliography = find_bibliography(report)
 
     def flush_paragraph() -> None:
         if paragraph:
@@ -119,7 +149,7 @@ def _render_blocks(report: str) -> tuple[list[str], int]:
             blocks.append("<table><thead>" + head + "</thead><tbody>" + rows + "</tbody></table>")
             table_rows.clear()
 
-    for line in report.splitlines():
+    for index, line in enumerate(report.splitlines()):
         if FENCE.match(line):
             in_fence = not in_fence
             if not in_fence:
@@ -132,6 +162,12 @@ def _render_blocks(report: str) -> tuple[list[str], int]:
             continue
         if in_fence:
             code_lines.append(line)
+            continue
+        if index in bibliography:
+            flush_paragraph()
+            flush_list()
+            flush_table()
+            blocks.append(_bibliography_entry(line))
             continue
         if TABLE_DIVIDER.match(line):
             continue
@@ -158,10 +194,7 @@ def _render_blocks(report: str) -> tuple[list[str], int]:
             if list_items and wanted != list_tag:
                 flush_list()
             list_tag = wanted
-            item = (ordered or unordered).group(1)
-            numbers = CITATION.findall(item)
-            anchor = ' id="ref-' + numbers[0] + '"' if numbers else ""
-            list_items.append(_inline(item) if not anchor else "<span" + anchor + "></span>" + _inline(item))
+            list_items.append(_inline((ordered or unordered).group(1)))
             continue
         flush_list()
         if line.strip().startswith(">"):
@@ -202,7 +235,7 @@ def render_html(payload: dict[str, Any]) -> dict[str, Any]:
         "<title>" + html.escape(title, quote=False) + "</title>\n"
         "<style>" + PAGE_STYLE + "</style>\n</head>\n<body>\n"
         + "\n".join(blocks)
-        + "\n<footer>" + html.escape(payload.get("footer", "本報告由 deep-research-metis 產出，所有主張均對應已持久化證據。"), quote=False)
+        + "\n<footer>" + html.escape(payload.get("footer", DEFAULT_FOOTERS.get(language, DEFAULT_FOOTERS["zh-TW"])), quote=False)
         + "</footer>\n</body>\n</html>\n"
     )
     write_text_atomic(output_path, document)
