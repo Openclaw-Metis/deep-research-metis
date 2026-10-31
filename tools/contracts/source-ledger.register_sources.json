@@ -1,6 +1,6 @@
 {
   "id": "source-ledger.register_sources",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "把 http(s) 來源寫入 append-only 的 sources.jsonl，拒絕 userinfo credential、正規化網址後產生穩定 source_id，重複來源合併回既有 id。",
   "input_schema": {
     "type": "object",

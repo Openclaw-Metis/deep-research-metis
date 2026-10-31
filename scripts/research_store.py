@@ -30,7 +30,27 @@ CJK_RANGES = (
 LATIN_TOKEN = re.compile(r"[A-Za-z][A-Za-z'\-]*|\d+(?:[.,]\d+)*%?")
 NUMBER_TOKEN = re.compile(r"\d+(?:[.,]\d+)*\s?(?:%|percent|億|萬|兆|kwh|gw|mw|tw)?", re.IGNORECASE)
 PROPER_NOUN = re.compile(r"\b(?:[A-Z]{2,}|[A-Z][a-z]{2,})\b")
-CITATION_MARK = re.compile(r"\[\d{1,3}\]")
+# Accepts [1], [1, 2], [1-3], [1][2] and the full-width bracket forms zh-TW drafts use.
+CITATION_MARK = re.compile(r"[\[［【]\s*(\d{1,3}(?:\s*[,，、;；\-–—~～]\s*\d{1,3})*)\s*[\]］】]")
+CITATION_LIST_SPLIT = re.compile(r"[,，、;；]")
+MAX_CITATION_RANGE = 50
+HEADING = re.compile(r"^\s{0,3}(#{1,6})\s+(.*)$")
+FENCE = re.compile(r"^\s*(```|~~~)")
+URL = re.compile(r"https?://[^\s)\]|>）］】」』〉》，。；、]+")
+BIBLIOGRAPHY_ENTRY = re.compile(r"^\s*(?:[-*+]\s+)?(?:[\[［【]\s*(\d{1,3})\s*[\]］】]|(\d{1,3})[.)、])\s*\S")
+# Years, ordinals and cross-references carry digits without asserting a quantity.
+NON_QUANTITY = re.compile(
+    r"(?<![\d.,])(?:19|20)\d{2}(?![\d.,]|\s*(?:%|％|percent|[kmgt]w|[kmgt]wh|tons?|萬|億|兆|千|百|個|家|座|台|件|噸|度|元))"
+    r"|第\s*\d+|(?:表|圖|節|章|附錄)\s*\d+"
+    r"|\b(?:table|figure|fig\.?|section|chapter|appendix)\s*\d+",
+    re.IGNORECASE,
+)
+QUANTITY = re.compile(r"(?<![A-Za-z\d.,])\d+(?:,\d{3})*(?:\.\d+)?")
+HEDGE_WORDS = re.compile(
+    r"約|(?<![最附鄰])近(?![年期來日況])|逾|超過|左右|上下|\b(?:about|around|approximately|approx|roughly|nearly|almost|over|more than)\b|[~～≈]",
+    re.IGNORECASE,
+)
+HEDGED_TOLERANCE = 0.05
 SECRET_QUERY_PARAMS = frozenset(
     {"api_key", "apikey", "key", "token", "access_token", "auth", "signature", "sig", "password"}
 )
@@ -191,7 +211,10 @@ def canonical_url(url: str) -> str:
         for key, value in urlparse.parse_qsl(parts.query, keep_blank_values=True)
         if key.lower() not in TRACKING_PARAMS and key.lower() not in SECRET_QUERY_PARAMS
     ]
-    path = parts.path.rstrip("/") or "/"
+    # A browser copy gives percent-escapes while a typed bibliography keeps the
+    # CJK text; both must resolve to the same source identity.
+    path = urlparse.quote(parts.path.rstrip("/") or "/", safe="/%:@!$&'()*+,;=~-._")
+    path = re.sub(r"%[0-9a-fA-F]{2}", lambda match: match.group(0).upper(), path)
     return urlparse.urlunsplit((parts.scheme.lower(), netloc, path, urlparse.urlencode(sorted(query)), ""))
 
 
@@ -237,9 +260,108 @@ def load_lexicon(name: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def citation_numbers(text: str) -> list[int]:
+    """Expand every citation form in the text into sorted reference numbers."""
+    numbers: set[int] = set()
+    for match in CITATION_MARK.finditer(text):
+        for part in CITATION_LIST_SPLIT.split(match.group(1)):
+            bounds = [int(value) for value in re.findall(r"\d+", part)]
+            if len(bounds) == 2 and 0 <= bounds[1] - bounds[0] <= MAX_CITATION_RANGE:
+                numbers.update(range(bounds[0], bounds[1] + 1))
+            else:
+                numbers.update(bounds)
+    return sorted(numbers)
+
+
 def strip_citation_marks(text: str) -> str:
     """Remove inline citation markers so numbering never counts as claim content."""
     return CITATION_MARK.sub(" ", text)
+
+
+def _heading_spans(report: str) -> tuple[list[str], list[tuple[int, int, str]]]:
+    """Return the report lines and each heading as (index, level, title), skipping code fences."""
+    lines = report.splitlines()
+    spans: list[tuple[int, int, str]] = []
+    in_fence = False
+    for index, line in enumerate(lines):
+        if FENCE.match(line):
+            in_fence = not in_fence
+            continue
+        if not in_fence:
+            match = HEADING.match(line)
+            if match:
+                spans.append((index, len(match.group(1)), match.group(2).strip()))
+    return lines, spans
+
+
+def is_bibliography_entry(line: str) -> bool:
+    return bool(URL.search(line) or BIBLIOGRAPHY_ENTRY.match(line))
+
+
+def bibliography_entry_number(line: str) -> int | None:
+    """Read the entry number from a `[1] ...` or numbered-list bibliography line."""
+    match = BIBLIOGRAPHY_ENTRY.match(line)
+    if match is None:
+        return None
+    return int(match.group(1) or match.group(2))
+
+
+def find_bibliography(report: str) -> tuple[list[str], set[int]]:
+    """Locate bibliography sections, returning their titles and 0-based line indexes.
+
+    A heading alias alone is not enough. "資料來源比較" and "Sources of Uncertainty"
+    are body sections, and treating them as a bibliography would exempt their
+    claims from verification without anyone noticing, so a section counts only
+    when most of its lines read as entries.
+    """
+    aliases = tuple(load_lexicon("section_aliases")["sections"]["bibliography"])
+    lines, spans = _heading_spans(report)
+    heading_indexes = {index for index, _, _ in spans}
+    titles: list[str] = []
+    entry_lines: set[int] = set()
+    for position, (start, level, title) in enumerate(spans):
+        if not any(alias in title.lower() for alias in aliases):
+            continue
+        end = next((index for index, other, _ in spans[position + 1:] if other <= level), len(lines))
+        body = [
+            index for index in range(start + 1, end)
+            if lines[index].strip() and index not in heading_indexes and not FENCE.match(lines[index])
+        ]
+        if body and sum(is_bibliography_entry(lines[index]) for index in body) * 2 >= len(body):
+            titles.append(title)
+            entry_lines.update(body)
+    return titles, entry_lines
+
+
+def _numbers_in(text: str) -> list[float]:
+    return [float(match.group(0).replace(",", "")) for match in QUANTITY.finditer(text)]
+
+
+def quantity_values(text: str) -> list[float]:
+    """Extract the numbers a sentence asserts, leaving out years and cross-references."""
+    normalized = unicodedata.normalize("NFKC", strip_citation_marks(text))
+    return _numbers_in(NON_QUANTITY.sub(" ", normalized))
+
+
+def unmatched_quantities(claim: str, quotes: Iterable[str]) -> list[float]:
+    """List claim numbers absent from every quote the claim cites.
+
+    Lexical coverage cannot see a changed digit, so "成長 81%" scores as high as
+    "成長 18%" against the same quote. A hedged claim ("約 12%") may round, within
+    a tolerance narrow enough that "about 30%" still fails against 18%.
+    """
+    available = [
+        value
+        for quote in quotes
+        for value in _numbers_in(unicodedata.normalize("NFKC", strip_citation_marks(quote)))
+    ]
+    hedged = bool(HEDGE_WORDS.search(claim))
+    missing: list[float] = []
+    for value in quantity_values(claim):
+        tolerance = abs(value) * HEDGED_TOLERANCE if hedged else 1e-9
+        if not any(abs(value - known) <= tolerance for known in available):
+            missing.append(value)
+    return missing
 
 
 def normalize_for_match(text: str) -> str:

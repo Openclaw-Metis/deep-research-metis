@@ -1,5 +1,32 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Skill lifecycle manifest",
-  "type": "object"
+  "type": "object",
+  "required": ["name", "status", "owner", "archetype", "primary_structure_pattern", "lifecycle", "support", "risk", "dependencies"],
+  "properties": {
+    "name": {"type": "string"},
+    "status": {
+      "type": "string",
+      "enum": ["draft", "candidate", "validated", "released", "monitored", "needs-maintenance", "merge-candidate", "split-candidate", "deprecated", "retired"]
+    },
+    "owner": {"type": "string"},
+    "archetype": {"type": "string", "enum": ["router", "tool-executor", "executor", "ops", "utility"]},
+    "primary_structure_pattern": {"type": "string"},
+    "lifecycle": {
+      "type": "object",
+      "required": ["created_at", "last_validated_at", "review_interval_days", "next_review_due"]
+    },
+    "support": {
+      "type": "object",
+      "required": ["primary_hosts", "secondary_hosts", "unsupported_hosts"]
+    },
+    "risk": {
+      "type": "object",
+      "required": ["external_side_effects", "requires_secrets", "data_sensitivity"]
+    },
+    "dependencies": {
+      "type": "object",
+      "required": ["scripts", "references"]
+    }
+  }
 }

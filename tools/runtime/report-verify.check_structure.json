@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/report_verify.py",
   "callable": "check_structure",
-  "compatible_contract_digest": "sha256:c2bc0a6bd35c2c8cf609e87e2a3969c50ee60b1d95c96c1f09d7ae7c4444aa84",
+  "compatible_contract_digest": "sha256:3f5c8307cc347a318aadbade2199f29fb8864ef530ad049ee7c3be9a1623a0c8",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",
@@ -20,11 +20,11 @@
     "bundled_paths": [
       {
         "path": "scripts/research_store.py",
-        "digest": "sha256:9778a410925b6386737f3909b0eb9adabf2544952b22463db7afd2b9e3e64ef3"
+        "digest": "sha256:f85ff6d530e58b400a7c0d5a4eed37663e83a1888540dd0ce7d9e7976a134bed"
       },
       {
         "path": "assets/lexicon/section_aliases.json",
-        "digest": "sha256:fd2e57c0b736cbd81de41f766d457f4d6525868184555afb2311b1546b1f1c61"
+        "digest": "sha256:dbb653d043bcc0209741046cf6c1152acacbfa56a677e005374966e0fcd2e106"
       }
     ]
   },

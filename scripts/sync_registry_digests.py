@@ -39,7 +39,7 @@ def declared_dependencies(module_path: Path) -> list[str]:
     dependencies: list[str] = []
     if "from research_store import" in source:
         dependencies.append("scripts/research_store.py")
-    if "load_lexicon" in source:
+    if "load_lexicon" in source or "find_bibliography" in source:
         dependencies.append("assets/lexicon/section_aliases.json")
     if not dependencies:
         raise ValueError("runtime module has no declared bundled dependency: " + str(module_path))

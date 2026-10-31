@@ -1,5 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Skill 發布證據",
-  "type": "object"
+  "title": "Skill release evidence",
+  "type": "object",
+  "required": ["skill_name", "version", "generated_at", "commit", "checks", "blocking_findings"],
+  "properties": {
+    "skill_name": {"type": "string"},
+    "version": {"type": "string"},
+    "generated_at": {"type": "string"},
+    "commit": {"type": "string"},
+    "checks": {"type": "object"},
+    "benchmark": {"type": ["object", "null"]},
+    "blocking_findings": {"type": "array"}
+  }
 }

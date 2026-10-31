@@ -10,7 +10,8 @@
 
 - **來源有穩定身分**：只接受 http(s) 來源；userinfo credential 直接拒絕，query credential 與追蹤參數在寫入帳本前移除。
 - **證據先於寫作**：逐字引文以 append-only 方式持久化，寫作只能引用已存在的引文。
-- **主張逐句可驗**：報告切成 claim，每個帶引用的主張都對照它所引來源的引文計分。
+- **主張逐句可驗**：報告切成 claim（含表格資料列），每個帶引用的主張都對照它所引來源的引文計分。
+- **數字不能靠字詞過關**：主張的每個數字都要出現在所引引文內，把 18% 寫成 81% 不會因為其他字都對而通過。
 - **交付前三道檢查**：結構、引用鏈、主張支撐度，任一不過就不交付。
 
 ### 雙語驗證模型
@@ -24,7 +25,9 @@
 | 中文主張對英文引文 | 翻譯後仍保留的錨點：數字、單位、百分比、縮寫、專有名詞 | `supported` ≥ 0.60、`partial` ≥ 0.34 |
 | 跨語言且沒有任何錨點 | 無法逐字比對 | `unverifiable` + 補證建議（預設 warning，不假裝有結論） |
 
-行內引用標記 `[N]` 在計分前一律移除，否則編號會被當成主張裡的數字而扭曲比對。細節見 [references/bilingual-verification.md](../references/bilingual-verification.md)。
+行內引用標記在計分前一律移除，否則編號會被當成主張裡的數字而扭曲比對。`[1, 2]`、`[1-3]` 與全形括號都是有效引用。細節見 [references/bilingual-verification.md](../references/bilingual-verification.md)。
+
+這些檢查比對字詞與數字，不理解語意。`supported` 的意思是用語與數字對得上，否定、因果與適用範圍要由 agent 閱讀引文複核；正確但用詞差很多的改寫也可能被判為 `unsupported`。
 
 ## 安裝
 
@@ -54,11 +57,11 @@ exit code `0` 表示完成、`2` 表示函數失敗、`3` 表示 guard 在呼叫
 | `claim-ledger.extract_claims` | 中英文共用規則切句，建立綁定 report digest 的 derived snapshot |
 | `report-verify.check_structure` | 必要章節、正文引用、佔位字串與雙語長度，持久化檢查結果 |
 | `report-verify.check_citations` | 行內引用、書目條目與來源帳本三方比對，產生引用對應表 |
-| `report-verify.check_claim_support` | 同語系／跨語系兩套計分，輸出四種判定 |
+| `report-verify.check_claim_support` | 同語系／跨語系兩套計分加數字比對，輸出四種判定 |
 | `report-render.render_html` | 單檔、全跳脫、無外部資源的 HTML 交付物 |
-| `run-manifest.write_manifest` | 階段狀態、gate 結果與產物 digest，支援續跑 |
+| `run-manifest.write_manifest` | 階段狀態、gate 結果與產物 digest，拒絕與驗證產物矛盾的紀錄，支援續跑 |
 
-三個 expert playbook：`full-research-report`（完整報告）、`report-verification`（既有草稿稽核）、`evidence-intake`（先建證據底稿）。每個 playbook 只能組合自己 allowlist 內的函數。
+七個 expert playbook 由七個模組各自擁有：`full-research-report`（完整報告）、`report-verification`（既有草稿稽核）、`evidence-intake`（先建證據底稿）、`source-registration`（補登來源）、`claim-triage`（草稿自查未引用數字）、`report-delivery`（已驗證報告的 HTML 交付）、`run-resume`（中斷續跑）。每個 playbook 只能組合自己 allowlist 內的函數，模組索引在 `modules/<module>/REFERENCE.md`。
 
 ## 執行治理
 
@@ -79,9 +82,20 @@ exit code `0` 表示完成、`2` 表示函數失敗、`3` 表示 guard 在呼叫
 python -m unittest discover -s tests
 ```
 
-28 項回歸測試（純標準庫）涵蓋網址與 credential 邊界、雙語計分、續跑 snapshot、正文／書目引用分離、verification freshness、approval binding，以及完整 registry digest 鏈。
+回歸測試為純標準庫，涵蓋網址與 credential 邊界、切句與引用解析、雙語與數字計分、書目判定、續跑 snapshot、verification freshness、approval binding、HTML 跳脫，以及完整 registry digest 鏈。
 
-本版本以 SkillOps Studio 驗證：revise、evolve、evaluate、security 與 publish release gate 皆為 `PASS`，Code as Tool 稽核涵蓋 9 個函數與 15 條決定性軌跡。Security 為 0 error / 2 個 test-only subprocess warning；frozen live benchmark 標記為 `SKIPPED`，因此本專案不提出速度、真實 host 品質或取代其他技能的宣稱。逐項證據見 [references/readiness_report.md](../references/readiness_report.md)。
+驗證函數的準確度以人工標註的凍結基準衡量，held_out 28 案例在修改程式前凍結：
+
+```bash
+python -B tests/verification_benchmark.py --split held_out
+```
+
+| 版本 | 判定一致率 | 應擋案例攔截率 | 誤放行 | 誤擋 |
+| --- | --- | --- | --- | --- |
+| v2026.8.30 | 0.50 | 0.6667 | 5 | 9 |
+| v2026.10.31 | 0.9286 | 1.0 | 0 | 2 |
+
+Gate 結果、未執行項目與已知限制見 [references/readiness_report.md](../references/readiness_report.md)。沒有跑過真實 host 上的 live benchmark，因此本專案不提出速度、觸發準確率或取代其他技能的宣稱。
 
 ## 授權與來源
 

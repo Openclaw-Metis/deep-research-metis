@@ -8,6 +8,7 @@ run on perceived prestige.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from research_store import (
@@ -22,15 +23,21 @@ from research_store import (
     stripped_credentials,
 )
 
-PRIMARY_HINTS = ("doi.org", "arxiv.org", "pubmed", ".gov", ".edu", "who.int", "oecd.org", "europa.eu")
-COMMUNITY_HINTS = ("medium.com", "substack.com", "reddit.com", "x.com", "twitter.com", "facebook.com")
+PRIMARY_DOMAINS = ("doi.org", "arxiv.org", "who.int", "oecd.org", "europa.eu")
+PRIMARY_TLD = re.compile(r"(?:^|\.)(?:gov|edu)(?:\.[a-z]{2})?$")
+COMMUNITY_DOMAINS = ("medium.com", "substack.com", "reddit.com", "x.com", "twitter.com", "facebook.com")
+
+
+def _is_under(host: str, domains: tuple[str, ...]) -> bool:
+    """Match whole domain labels: netflix.com is not x.com, nor gov.evil.com a government host."""
+    return any(host == domain or host.endswith("." + domain) for domain in domains)
 
 
 def _authority_signals(canonical: str, record: dict[str, Any]) -> dict[str, Any]:
     host = canonical.split("/")[2]
-    if any(hint in host for hint in PRIMARY_HINTS):
+    if _is_under(host, PRIMARY_DOMAINS) or PRIMARY_TLD.search(host):
         tier = "primary"
-    elif any(hint in host for hint in COMMUNITY_HINTS):
+    elif _is_under(host, COMMUNITY_DOMAINS):
         tier = "community"
     else:
         tier = "secondary"

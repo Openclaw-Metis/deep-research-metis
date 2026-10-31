@@ -1,7 +1,26 @@
 {
   "name": "deep-research-metis",
   "archetype": "tool-executor",
-  "primary_job": "在單一研究報告領域內，以隨 Skill 交付的 Python 函數完成來源身分、證據持久化、主張抽取、雙語驗證與自包含 HTML 交付。",
+  "activation_policy": {
+    "scope": "domain-wide",
+    "description_strategy": "domain-entrypoint",
+    "coverage_basis": "tool-family",
+    "domain_id": "deep-research-report",
+    "domain_label": "研究報告",
+    "primary_objects": [
+      "研究報告",
+      "文獻回顧",
+      "技術或市場比較報告",
+      "報告引用稽核"
+    ],
+    "in_domain_unsupported_policy": "handoff",
+    "fallback_targets": [
+      "host 的一般檢索流程",
+      "安全 no-match 結果"
+    ],
+    "out_of_domain_policy": "do-not-trigger"
+  },
+  "primary_job": "在研究報告領域內，以隨 Skill 交付的 Python 函數完成來源身分、證據持久化、主張抽取、雙語與數字驗證及自包含 HTML 交付。",
   "inputs": [
     "研究問題、子問題與研究深度模式",
     "檢索所得的來源清單與逐字引文",
@@ -38,15 +57,21 @@
     "execution_model": "code-as-tool",
     "language": "python",
     "registry": "tools/registry.json",
-    "capability_source": "SKILL.md",
+    "capability_source": {
+      "root_index": "SKILL.md",
+      "module_index_pattern": "modules/{module}/REFERENCE.md",
+      "module_registry": "modules/module-registry.json"
+    },
     "domain_policy": {
       "domain_id": "deep-research-report",
       "domain_summary": "多來源、可追溯、claim 級可驗證的研究報告生產與稽核。",
       "supported_tasks": [
         "從研究問題產出含證據鏈的完整報告",
-        "為既有報告稽核引用鏈與主張支撐度",
+        "為既有報告稽核引用鏈、主張支撐度與數字一致性",
         "登錄來源身分並持久化逐字證據",
-        "把通過驗證的報告渲染為自包含 HTML 交付物"
+        "草稿階段抽取主張並列出未引用的數據句",
+        "把通過驗證的報告渲染為自包含 HTML 交付物",
+        "依 run manifest 續跑中斷的研究"
       ],
       "out_of_scope": [
         "單次事實查詢與單一文件摘要",
@@ -59,10 +84,12 @@
       "out_of_domain_policy": "handoff"
     },
     "expertise": {
-      "source": "SKILL.md",
+      "source": "module-indexes",
       "playbooks": [
         {
           "id": "full-research-report",
+          "owner_module": "research-plan",
+          "reference_ref": "modules/research-plan/REFERENCE.md",
           "task": "從研究問題一路完成到通過驗證的報告與 HTML 交付物。",
           "allowed_tools": [
             "research-plan.build_plan",
@@ -78,7 +105,8 @@
           "selection_rules": [
             "使用者要求完整研究報告且尚未有草稿時採用本 playbook",
             "已有報告草稿只需稽核時改用 report-verification",
-            "只需登錄來源與證據時改用 evidence-intake"
+            "只需登錄來源與證據時改用 evidence-intake",
+            "報告已驗證完成只要交付物時改用 report-delivery"
           ],
           "preconditions": [
             "已取得研究問題與可寫入的 run_dir 工作區",
@@ -87,15 +115,68 @@
           ],
           "workflow": {
             "steps": [
-              {"id": "plan", "function_id": "research-plan.build_plan", "depends_on": []},
-              {"id": "sources", "function_id": "source-ledger.register_sources", "depends_on": ["plan"]},
-              {"id": "evidence", "function_id": "evidence-store.append_evidence", "depends_on": ["sources"]},
-              {"id": "claims", "function_id": "claim-ledger.extract_claims", "depends_on": ["evidence"]},
-              {"id": "structure", "function_id": "report-verify.check_structure", "depends_on": ["claims"]},
-              {"id": "citations", "function_id": "report-verify.check_citations", "depends_on": ["claims"]},
-              {"id": "support", "function_id": "report-verify.check_claim_support", "depends_on": ["structure", "citations"]},
-              {"id": "render", "function_id": "report-render.render_html", "depends_on": ["support"]},
-              {"id": "manifest", "function_id": "run-manifest.write_manifest", "depends_on": ["render"]}
+              {
+                "id": "plan",
+                "function_id": "research-plan.build_plan",
+                "depends_on": []
+              },
+              {
+                "id": "sources",
+                "function_id": "source-ledger.register_sources",
+                "depends_on": [
+                  "plan"
+                ]
+              },
+              {
+                "id": "evidence",
+                "function_id": "evidence-store.append_evidence",
+                "depends_on": [
+                  "sources"
+                ]
+              },
+              {
+                "id": "claims",
+                "function_id": "claim-ledger.extract_claims",
+                "depends_on": [
+                  "evidence"
+                ]
+              },
+              {
+                "id": "structure",
+                "function_id": "report-verify.check_structure",
+                "depends_on": [
+                  "claims"
+                ]
+              },
+              {
+                "id": "citations",
+                "function_id": "report-verify.check_citations",
+                "depends_on": [
+                  "claims"
+                ]
+              },
+              {
+                "id": "support",
+                "function_id": "report-verify.check_claim_support",
+                "depends_on": [
+                  "structure",
+                  "citations"
+                ]
+              },
+              {
+                "id": "render",
+                "function_id": "report-render.render_html",
+                "depends_on": [
+                  "support"
+                ]
+              },
+              {
+                "id": "manifest",
+                "function_id": "run-manifest.write_manifest",
+                "depends_on": [
+                  "render"
+                ]
+              }
             ]
           },
           "execution_steps": [
@@ -104,13 +185,14 @@
             "以 append_evidence 持久化逐字引文，寫作時只引用已持久化的內容",
             "草稿完成後依序執行 extract_claims、check_structure 與 check_citations",
             "以 check_claim_support 評分每個帶引用主張，補證後重跑",
+            "PASS 後由 agent 逐則閱讀 executive summary 主張與其 best_evidence_id 引文；否定、因果與範圍是否相符不在機械檢查內",
             "三項檢查皆 PASS、產物綁定目前 report digest 且取得 scoped approval 後才執行 render_html",
             "以 write_manifest 記錄階段狀態、gate 結果與產物 digest"
           ],
           "success_criteria": [
             "check_structure 的 status 為 PASS 且沒有 placeholder finding",
             "check_citations 沒有 error 級 finding 且每個行內引用都對應到已登錄來源",
-            "check_claim_support 沒有 unsupported 主張，unverifiable 主張已在報告中標註查證建議",
+            "check_claim_support 沒有 unsupported 主張與 claim_number_unmatched，unverifiable 主張已在報告中標註查證建議",
             "三項驗證產物的 report_digest 與交付草稿一致",
             "run_manifest.json 記錄了本輪實際執行的 gate 結果"
           ],
@@ -123,7 +205,9 @@
             "runtime_unavailable": "stop",
             "tool_failure": "stop",
             "success_validation_failure": "stop",
-            "allowed_alternate_tools": ["run-manifest.write_manifest"]
+            "allowed_alternate_tools": [
+              "run-manifest.write_manifest"
+            ]
           },
           "stop_conditions": [
             "run_dir 落在 skill 資料夾內",
@@ -133,6 +217,8 @@
         },
         {
           "id": "report-verification",
+          "owner_module": "report-verify",
+          "reference_ref": "modules/report-verify/REFERENCE.md",
           "task": "對既有報告草稿執行唯讀性質的引用與支撐度稽核。",
           "allowed_tools": [
             "claim-ledger.extract_claims",
@@ -152,17 +238,47 @@
           ],
           "workflow": {
             "steps": [
-              {"id": "claims", "function_id": "claim-ledger.extract_claims", "depends_on": []},
-              {"id": "structure", "function_id": "report-verify.check_structure", "depends_on": ["claims"]},
-              {"id": "citations", "function_id": "report-verify.check_citations", "depends_on": ["claims"]},
-              {"id": "support", "function_id": "report-verify.check_claim_support", "depends_on": ["structure", "citations"]},
-              {"id": "manifest", "function_id": "run-manifest.write_manifest", "depends_on": ["support"]}
+              {
+                "id": "claims",
+                "function_id": "claim-ledger.extract_claims",
+                "depends_on": []
+              },
+              {
+                "id": "structure",
+                "function_id": "report-verify.check_structure",
+                "depends_on": [
+                  "claims"
+                ]
+              },
+              {
+                "id": "citations",
+                "function_id": "report-verify.check_citations",
+                "depends_on": [
+                  "claims"
+                ]
+              },
+              {
+                "id": "support",
+                "function_id": "report-verify.check_claim_support",
+                "depends_on": [
+                  "structure",
+                  "citations"
+                ]
+              },
+              {
+                "id": "manifest",
+                "function_id": "run-manifest.write_manifest",
+                "depends_on": [
+                  "support"
+                ]
+              }
             ]
           },
           "execution_steps": [
             "先抽取主張，讓後續檢查有可定位的 claim_id",
             "並行執行結構檢查與引用檢查，兩者不共用輸出檔",
             "引用檢查產生 citation_map.json 後才評分支撐度",
+            "PASS 後由 agent 逐則閱讀 executive summary 主張與其 best_evidence_id 引文；否定、因果與範圍是否相符不在機械檢查內",
             "把三項檢查結果寫入 run manifest 作為稽核證據"
           ],
           "success_criteria": [
@@ -178,7 +294,9 @@
             "runtime_unavailable": "handoff",
             "tool_failure": "stop",
             "success_validation_failure": "stop",
-            "allowed_alternate_tools": ["run-manifest.write_manifest"]
+            "allowed_alternate_tools": [
+              "run-manifest.write_manifest"
+            ]
           },
           "stop_conditions": [
             "工作區沒有來源或證據帳本可供比對",
@@ -187,6 +305,8 @@
         },
         {
           "id": "evidence-intake",
+          "owner_module": "evidence-store",
+          "reference_ref": "modules/evidence-store/REFERENCE.md",
           "task": "在寫作前先建立可追溯的來源身分與逐字證據底稿。",
           "allowed_tools": [
             "research-plan.build_plan",
@@ -205,10 +325,32 @@
           ],
           "workflow": {
             "steps": [
-              {"id": "plan", "function_id": "research-plan.build_plan", "depends_on": []},
-              {"id": "sources", "function_id": "source-ledger.register_sources", "depends_on": ["plan"]},
-              {"id": "evidence", "function_id": "evidence-store.append_evidence", "depends_on": ["sources"]},
-              {"id": "manifest", "function_id": "run-manifest.write_manifest", "depends_on": ["evidence"]}
+              {
+                "id": "plan",
+                "function_id": "research-plan.build_plan",
+                "depends_on": []
+              },
+              {
+                "id": "sources",
+                "function_id": "source-ledger.register_sources",
+                "depends_on": [
+                  "plan"
+                ]
+              },
+              {
+                "id": "evidence",
+                "function_id": "evidence-store.append_evidence",
+                "depends_on": [
+                  "sources"
+                ]
+              },
+              {
+                "id": "manifest",
+                "function_id": "run-manifest.write_manifest",
+                "depends_on": [
+                  "evidence"
+                ]
+              }
             ]
           },
           "execution_steps": [
@@ -230,11 +372,236 @@
             "runtime_unavailable": "handoff",
             "tool_failure": "stop",
             "success_validation_failure": "stop",
-            "allowed_alternate_tools": ["run-manifest.write_manifest"]
+            "allowed_alternate_tools": [
+              "run-manifest.write_manifest"
+            ]
           },
           "stop_conditions": [
             "來源沒有可追溯網址",
             "引文是改寫而非原文"
+          ]
+        },
+        {
+          "id": "source-registration",
+          "owner_module": "source-ledger",
+          "reference_ref": "modules/source-ledger/REFERENCE.md",
+          "task": "把新找到的來源補進既有 run 的來源帳本，完成去重與身分指派。",
+          "allowed_tools": [
+            "source-ledger.register_sources",
+            "run-manifest.write_manifest"
+          ],
+          "selection_rules": [
+            "使用者只要補登來源，或要修正 source_not_registered 時採用",
+            "同時要持久化逐字引文時改用 evidence-intake",
+            "要完整報告時改用 full-research-report"
+          ],
+          "preconditions": [
+            "run_dir 可寫入",
+            "每個來源都有 http(s) 網址與標題"
+          ],
+          "workflow": {
+            "steps": [
+              {
+                "id": "sources",
+                "function_id": "source-ledger.register_sources",
+                "depends_on": []
+              },
+              {
+                "id": "manifest",
+                "function_id": "run-manifest.write_manifest",
+                "depends_on": [
+                  "sources"
+                ]
+              }
+            ]
+          },
+          "execution_steps": [
+            "以 register_sources 批次登錄，重複網址由 ledger 合併",
+            "回報 registered、duplicates 與被移除的 credential 參數",
+            "以 write_manifest 記錄 retrieval 階段狀態"
+          ],
+          "success_criteria": [
+            "每個要被引用的來源都取得 source_id",
+            "manifest 的 retrieval 階段狀態與實際結果一致"
+          ],
+          "fallbacks": [
+            "來源沒有可追溯網址時列出缺口並請使用者提供原始出處"
+          ],
+          "fallback_policy": {
+            "runtime_unavailable": "handoff",
+            "tool_failure": "stop",
+            "success_validation_failure": "stop",
+            "allowed_alternate_tools": [
+              "run-manifest.write_manifest"
+            ]
+          },
+          "stop_conditions": [
+            "來源沒有可追溯網址",
+            "網址含 userinfo credential 或不是 http(s)"
+          ]
+        },
+        {
+          "id": "claim-triage",
+          "owner_module": "claim-ledger",
+          "reference_ref": "modules/claim-ledger/REFERENCE.md",
+          "task": "寫作途中抽取主張，列出未引用的數據句與可定位的 claim_id，不執行完整驗證。",
+          "allowed_tools": [
+            "claim-ledger.extract_claims",
+            "run-manifest.write_manifest"
+          ],
+          "selection_rules": [
+            "使用者要在草稿階段先看哪些數字還沒有引用時採用",
+            "要判定能否交付時改用 report-verification"
+          ],
+          "preconditions": [
+            "草稿可由 report_markdown 或工作區路徑取得"
+          ],
+          "workflow": {
+            "steps": [
+              {
+                "id": "claims",
+                "function_id": "claim-ledger.extract_claims",
+                "depends_on": []
+              },
+              {
+                "id": "manifest",
+                "function_id": "run-manifest.write_manifest",
+                "depends_on": [
+                  "claims"
+                ]
+              }
+            ]
+          },
+          "execution_steps": [
+            "以 extract_claims 建立綁定目前 report digest 的主張快照，草稿尚無引用時傳入 require_cited_claims=false",
+            "依 kind 列出 quantitative-uncited 主張與其 claim_id、章節、原句",
+            "以 write_manifest 記錄 drafting 階段狀態"
+          ],
+          "success_criteria": [
+            "quantitative-uncited 主張全數列出且可定位",
+            "回報時明示這不是交付判定"
+          ],
+          "fallbacks": [
+            "草稿過長導致結果被摘要時改讀 claims.jsonl"
+          ],
+          "fallback_policy": {
+            "runtime_unavailable": "handoff",
+            "tool_failure": "stop",
+            "success_validation_failure": "stop",
+            "allowed_alternate_tools": [
+              "run-manifest.write_manifest"
+            ]
+          },
+          "stop_conditions": [
+            "草稿為空",
+            "使用者其實要求判定可否交付"
+          ]
+        },
+        {
+          "id": "report-delivery",
+          "owner_module": "report-render",
+          "reference_ref": "modules/report-render/REFERENCE.md",
+          "task": "為已通過三項檢查的報告取得 scoped approval 後，產生自包含 HTML 交付物。",
+          "allowed_tools": [
+            "report-render.render_html",
+            "run-manifest.write_manifest"
+          ],
+          "selection_rules": [
+            "報告已通過三項檢查，使用者只要交付物時採用",
+            "尚未驗證或草稿已改動時先走 report-verification"
+          ],
+          "preconditions": [
+            "structure_check.json、citation_map.json 與 claim_support.json 皆為目前 report digest 的 PASS",
+            "已取得綁定 scope、target、report digest 與期限的 approval record"
+          ],
+          "workflow": {
+            "steps": [
+              {
+                "id": "render",
+                "function_id": "report-render.render_html",
+                "depends_on": []
+              },
+              {
+                "id": "manifest",
+                "function_id": "run-manifest.write_manifest",
+                "depends_on": [
+                  "render"
+                ]
+              }
+            ]
+          },
+          "execution_steps": [
+            "計算目前報告的 digest 並向使用者取得 scoped approval",
+            "以 render_html 寫出交付物，既有檔案只在明示 overwrite 時才取代",
+            "以 write_manifest 記錄 delivery 階段與交付物 digest"
+          ],
+          "success_criteria": [
+            "交付物為單檔、全跳脫且無外部資源",
+            "manifest 記錄 delivery 階段"
+          ],
+          "fallbacks": [
+            "未取得授權時只交付 Markdown 報告與檢查結果"
+          ],
+          "fallback_policy": {
+            "runtime_unavailable": "stop",
+            "tool_failure": "stop",
+            "success_validation_failure": "stop",
+            "allowed_alternate_tools": [
+              "run-manifest.write_manifest"
+            ]
+          },
+          "stop_conditions": [
+            "任一驗證產物不是目前 report digest 的 PASS",
+            "approval 缺失、過期或與輸出不符"
+          ]
+        },
+        {
+          "id": "run-resume",
+          "owner_module": "run-manifest",
+          "reference_ref": "modules/run-manifest/REFERENCE.md",
+          "task": "依 run_manifest.json 判斷中斷後該從哪個階段續跑，並如實記錄續跑結果。",
+          "allowed_tools": [
+            "run-manifest.write_manifest"
+          ],
+          "selection_rules": [
+            "使用者說研究中斷、要接著做時採用",
+            "工作區沒有 manifest 時改用 full-research-report 或 evidence-intake 重新開始"
+          ],
+          "preconditions": [
+            "run_dir 內有 run_manifest.json"
+          ],
+          "workflow": {
+            "steps": [
+              {
+                "id": "manifest",
+                "function_id": "run-manifest.write_manifest",
+                "depends_on": []
+              }
+            ]
+          },
+          "execution_steps": [
+            "先讀 run_manifest.json，比對 artifacts digest 與 verification 快照",
+            "只把未完成或產物已變動的階段排入續跑，再交回對應 playbook",
+            "完成後以 write_manifest 記錄實際結果"
+          ],
+          "success_criteria": [
+            "已完成且產物未變動的階段不重跑",
+            "manifest 的 gate 結果與驗證產物一致"
+          ],
+          "fallbacks": [
+            "報告 digest 已變動時把 verification 階段標為待重跑"
+          ],
+          "fallback_policy": {
+            "runtime_unavailable": "handoff",
+            "tool_failure": "stop",
+            "success_validation_failure": "stop",
+            "allowed_alternate_tools": [
+              "run-manifest.write_manifest"
+            ]
+          },
+          "stop_conditions": [
+            "manifest 無法解析",
+            "使用者要求把 FAIL 記成 PASS"
           ]
         }
       ]
@@ -269,7 +636,6 @@
         "validate-semantics",
         "validate-effects",
         "approval",
-        "verify-dependencies",
         "resolve-entrypoint",
         "validate-python",
         "resolve-assets",

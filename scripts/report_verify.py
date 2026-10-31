@@ -14,21 +14,26 @@ import re
 from typing import Any
 
 from research_store import (
+    FENCE,
+    HEADING,
+    URL,
     SemanticError,
+    bibliography_entry_number,
     bilingual_length,
     canonical_url,
+    citation_numbers,
     digest,
+    find_bibliography,
     read_jsonl,
     load_lexicon,
     read_report,
+    quantity_values,
     resolve_run_dir,
     support_score,
+    unmatched_quantities,
     write_json_atomic,
 )
 
-HEADING = re.compile(r"^\s{0,3}#{1,6}\s+(.*)$")
-CITATION = re.compile(r"\[(\d{1,3})\]")
-URL = re.compile(r"https?://[^\s)\]|>]+")
 LEXICON = load_lexicon("section_aliases")
 SECTION_ALIASES = {key: tuple(value) for key, value in LEXICON["sections"].items()}
 PLACEHOLDER = re.compile("|".join(re.escape(marker) for marker in LEXICON["placeholder_markers"]), re.IGNORECASE)
@@ -36,6 +41,10 @@ SUPPORTED_THRESHOLD = 0.45
 PARTIAL_THRESHOLD = 0.22
 CROSS_SCRIPT_SUPPORTED = 0.60
 CROSS_SCRIPT_PARTIAL = 0.34
+# "unsupported" outranks "unverifiable": a quote that was compared and did not
+# match is a real signal, while a quote that could not be compared is none. The
+# ranking also keeps a verdict independent of the order quotes were captured in.
+VERDICT_RANK = {"supported": 3, "partial": 2, "unsupported": 1, "unverifiable": 0}
 
 
 def _finding(severity: str, code: str, message: str, **extra: Any) -> dict[str, Any]:
@@ -56,36 +65,28 @@ def _headings(report: str) -> list[str]:
     found = []
     in_fence = False
     for line in report.splitlines():
-        if re.match(r"^\s*(```|~~~)", line):
+        if FENCE.match(line):
             in_fence = not in_fence
             continue
         if in_fence:
             continue
         match = HEADING.match(line)
         if match:
-            found.append(match.group(1).strip())
+            found.append(match.group(2).strip())
     return found
 
 
 def _inline_citations(report: str) -> list[int]:
     """Collect citations from report prose, excluding code fences and bibliography entries."""
+    _, bibliography = find_bibliography(report)
     numbers: set[int] = set()
     in_fence = False
-    in_bibliography = False
-    for line in report.splitlines():
-        if re.match(r"^\s*(```|~~~)", line):
+    for index, line in enumerate(report.splitlines()):
+        if FENCE.match(line):
             in_fence = not in_fence
             continue
-        if in_fence:
-            continue
-        heading = HEADING.match(line)
-        if heading:
-            in_bibliography = any(
-                alias in heading.group(1).lower() for alias in SECTION_ALIASES["bibliography"]
-            )
-            continue
-        if not in_bibliography:
-            numbers.update(int(number) for number in CITATION.findall(line))
+        if not in_fence and index not in bibliography and not HEADING.match(line):
+            numbers.update(citation_numbers(line))
     return sorted(numbers)
 
 
@@ -100,11 +101,15 @@ def check_structure(payload: dict[str, Any]) -> dict[str, Any]:
 
     headings = _headings(report)
     lowered = [heading.lower() for heading in headings]
+    bibliography_titles, _ = find_bibliography(report)
     findings: list[dict[str, Any]] = []
     present: list[str] = []
     for key in required:
         aliases = SECTION_ALIASES[key]
-        if any(alias in heading for heading in lowered for alias in aliases):
+        found = bool(bibliography_titles) if key == "bibliography" else any(
+            alias in heading for heading in lowered for alias in aliases
+        )
+        if found:
             present.append(key)
         else:
             findings.append(
@@ -139,22 +144,18 @@ def check_structure(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _bibliography_lines(report: str) -> list[str]:
-    lines: list[str] = []
-    capturing = False
-    in_fence = False
-    for line in report.splitlines():
-        if re.match(r"^\s*(```|~~~)", line):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        match = HEADING.match(line)
-        if match:
-            capturing = any(alias in match.group(1).lower() for alias in SECTION_ALIASES["bibliography"])
-            continue
-        if capturing and line.strip():
-            lines.append(line.strip())
-    return lines
+    _, entries = find_bibliography(report)
+    lines = report.splitlines()
+    return [lines[index].strip() for index in sorted(entries)]
+
+
+def _planned_minimum_sources(run_dir) -> int | None:
+    """Read the source floor the run committed to, when a plan exists."""
+    plan_path = run_dir / "research_plan.json"
+    if not plan_path.is_file():
+        return None
+    budget = json.loads(plan_path.read_text(encoding="utf-8")).get("retrieval_budget", {})
+    return budget.get("min_sources") if isinstance(budget, dict) else None
 
 
 def check_citations(payload: dict[str, Any]) -> dict[str, Any]:
@@ -164,17 +165,17 @@ def check_citations(payload: dict[str, Any]) -> dict[str, Any]:
     sources = read_jsonl(run_dir / "sources.jsonl")
     if not sources:
         raise SemanticError("citation.sources-not-registered", "sources.jsonl is empty; register sources first")
-    by_canonical = {record["canonical_url"]: record for record in sources}
+    # Re-canonicalise so ledgers written by an earlier release still match.
+    by_canonical = {canonical_url(record["canonical_url"]): record for record in sources}
 
     inline = _inline_citations(report)
     findings: list[dict[str, Any]] = []
     citation_map: dict[str, str] = {}
     entry_numbers: list[int] = []
     for line in _bibliography_lines(report):
-        numbers = CITATION.findall(line)
-        if not numbers:
+        number = bibliography_entry_number(line)
+        if number is None:
             continue
-        number = int(numbers[0])
         entry_numbers.append(number)
         if PLACEHOLDER.search(line):
             findings.append(_finding("error", "bibliography_placeholder", "參考來源仍是佔位項目", entry=number))
@@ -183,7 +184,7 @@ def check_citations(payload: dict[str, Any]) -> dict[str, Any]:
         if not url_match:
             findings.append(_finding("error", "bibliography_entry_without_url", "參考來源缺少可追溯連結", entry=number))
             continue
-        url = url_match.group(0).rstrip(".,;")
+        url = url_match.group(0).rstrip(".,;:!?'\"")
         try:
             record = by_canonical.get(canonical_url(url))
         except SemanticError:
@@ -204,6 +205,17 @@ def check_citations(payload: dict[str, Any]) -> dict[str, Any]:
     for number in sorted(set(entry_numbers)):
         if number not in inline:
             findings.append(_finding("warning", "entry_without_citation", "參考來源沒有被任何主張引用", entry=number))
+    minimum_sources = _planned_minimum_sources(run_dir)
+    if minimum_sources and len(citation_map) < minimum_sources:
+        findings.append(
+            _finding(
+                "warning",
+                "source_count_below_plan",
+                "實際引用的來源少於研究計畫的下限，請在限制章節說明缺口或補足來源",
+                resolved_sources=len(citation_map),
+                min_sources=minimum_sources,
+            )
+        )
 
     result = {
         "status": _status(findings),
@@ -220,6 +232,23 @@ def check_citations(payload: dict[str, Any]) -> dict[str, Any]:
     write_json_atomic(map_path, result)
     result["citation_map_path"] = str(map_path)
     return result
+
+
+def _quote_verdict(score: float, method: str, supported_at: float, partial_at: float) -> str:
+    if method == "insufficient-signal":
+        return "unverifiable"
+    if method == "cross-script-anchor":
+        supported_at, partial_at = CROSS_SCRIPT_SUPPORTED, CROSS_SCRIPT_PARTIAL
+    if score >= supported_at:
+        return "supported"
+    return "partial" if score >= partial_at else "unsupported"
+
+
+def _table_row_verdict(best: dict[str, Any], claim: dict[str, Any], unmatched: list[float], partial_at: float) -> str:
+    """Judge a table row on its figures: cells are fragments, not sentences to cover."""
+    if quantity_values(claim["text"]):
+        return "unsupported" if unmatched else "supported"
+    return "supported" if best["score"] >= partial_at else best["verdict"]
 
 
 def check_claim_support(payload: dict[str, Any]) -> dict[str, Any]:
@@ -268,9 +297,8 @@ def check_claim_support(payload: dict[str, Any]) -> dict[str, Any]:
             continue
         if claim["kind"] != "cited":
             continue
-        best_score = 0.0
-        best_evidence = None
-        best_method = "no-evidence"
+        best = {"verdict": "unsupported", "score": 0.0, "method": "no-evidence", "evidence_id": None}
+        cited_quotes: list[str] = []
         for number in claim["citations"]:
             source_id = citation_map.get(str(number))
             if source_id is None:
@@ -285,17 +313,28 @@ def check_claim_support(payload: dict[str, Any]) -> dict[str, Any]:
                 )
                 continue
             for record in quotes_by_source.get(source_id, []):
+                cited_quotes.append(record["quote"])
                 score, method = support_score(claim["text"], record["quote"])
-                if score > best_score or best_evidence is None:
-                    best_score = max(score, best_score)
-                    best_evidence = record["evidence_id"]
-                    best_method = method
-        if best_method == "cross-script-anchor":
-            supported_at, partial_at = CROSS_SCRIPT_SUPPORTED, CROSS_SCRIPT_PARTIAL
-        else:
-            supported_at, partial_at = supported_threshold, partial_threshold
-        if best_method == "insufficient-signal":
-            verdict = "unverifiable"
+                verdict = _quote_verdict(score, method, supported_threshold, partial_threshold)
+                if best["evidence_id"] is None or (VERDICT_RANK[verdict], score) > (VERDICT_RANK[best["verdict"]], best["score"]):
+                    best = {"verdict": verdict, "score": score, "method": method, "evidence_id": record["evidence_id"]}
+        unmatched = unmatched_quantities(claim["text"], cited_quotes) if cited_quotes else []
+        verdict = best["verdict"]
+        if claim.get("origin") == "table" and cited_quotes:
+            verdict = _table_row_verdict(best, claim, unmatched, partial_threshold)
+        if unmatched:
+            findings.append(
+                _finding(
+                    "error" if payload.get("strict", True) else "warning",
+                    "claim_number_unmatched",
+                    "主張的數字不在所引來源的引文內，請改正數字或補上含此數字的逐字引文",
+                    claim_id=claim["claim_id"],
+                    numbers=unmatched,
+                )
+            )
+            if verdict == "supported":
+                verdict = "partial"
+        if verdict == "unverifiable":
             findings.append(
                 _finding(
                     "error" if payload.get("require_cross_language_anchor", False) else "warning",
@@ -304,30 +343,26 @@ def check_claim_support(payload: dict[str, Any]) -> dict[str, Any]:
                     claim_id=claim["claim_id"],
                 )
             )
-        elif best_score >= supported_at:
-            verdict = "supported"
-        elif best_score >= partial_at:
-            verdict = "partial"
-        else:
-            verdict = "unsupported"
+        elif verdict == "unsupported":
             findings.append(
                 _finding(
                     "error" if payload.get("strict", True) else "warning",
                     "claim_unsupported",
                     "主張與已持久化證據的重疊度過低",
                     claim_id=claim["claim_id"],
-                    score=best_score,
-                    method=best_method,
+                    score=best["score"],
+                    method=best["method"],
                 )
             )
         scored.append(
             {
                 "claim_id": claim["claim_id"],
                 "verdict": verdict,
-                "score": best_score,
-                "method": best_method,
-                "best_evidence_id": best_evidence,
+                "score": best["score"],
+                "method": best["method"],
+                "best_evidence_id": best["evidence_id"],
                 "citations": claim["citations"],
+                "unmatched_numbers": unmatched,
             }
         )
 
@@ -338,6 +373,7 @@ def check_claim_support(payload: dict[str, Any]) -> dict[str, Any]:
         "unsupported": sum(1 for item in scored if item["verdict"] == "unsupported"),
         "unverifiable": sum(1 for item in scored if item["verdict"] == "unverifiable"),
         "cross_script_scored": sum(1 for item in scored if item["method"] == "cross-script-anchor"),
+        "number_mismatches": sum(1 for item in scored if item["unmatched_numbers"]),
         "supported_threshold": supported_threshold,
         "partial_threshold": partial_threshold,
         "cross_script_supported_threshold": CROSS_SCRIPT_SUPPORTED,

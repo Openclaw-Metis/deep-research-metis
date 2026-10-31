@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/research_plan.py",
   "callable": "build_plan",
-  "compatible_contract_digest": "sha256:8ae4bc6c8830504e21bd31b7ea9c8da87b8585493fc85be154aa0e5b37fe67c7",
+  "compatible_contract_digest": "sha256:6d452b32c289a2fa6afd499c29587bfafa57ae3be880fe74ea1a77497a34e354",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",
@@ -18,7 +18,7 @@
     "bundled_paths": [
       {
         "path": "scripts/research_store.py",
-        "digest": "sha256:9778a410925b6386737f3909b0eb9adabf2544952b22463db7afd2b9e3e64ef3"
+        "digest": "sha256:f85ff6d530e58b400a7c0d5a4eed37663e83a1888540dd0ce7d9e7976a134bed"
       }
     ]
   },

@@ -1,7 +1,7 @@
 {
   "id": "report-verify.check_claim_support",
-  "version": "1.1.0",
-  "description": "讀取 claims、evidence 與 citation_map，對每個帶引用主張取最高重疊分數，分為 supported、partial、unsupported，並標記含數據卻未引用的主張。",
+  "version": "1.2.0",
+  "description": "讀取 claims、evidence 與 citation_map，逐則引文取最強判定，分為 supported、partial、unsupported、unverifiable；標記未引用的數據主張，並檢查主張數字是否出現在所引來源的引文內。",
   "input_schema": {
     "type": "object",
     "properties": {

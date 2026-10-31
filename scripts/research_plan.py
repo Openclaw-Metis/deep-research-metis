@@ -8,6 +8,7 @@ later phases are validated against.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from research_store import SemanticError, digest, now_utc, require, resolve_run_dir, write_json_atomic
@@ -70,9 +71,22 @@ def build_plan(payload: dict[str, Any]) -> dict[str, Any]:
 
     run_dir = resolve_run_dir(payload)
     plan_id = "RP-" + digest(question + "|" + mode + "|" + language)[:12]
+    plan_path = run_dir / "research_plan.json"
+    created_at = now_utc()
+    if plan_path.is_file():
+        existing = json.loads(plan_path.read_text(encoding="utf-8"))
+        # The ledgers in this workspace belong to the existing question; a second
+        # question here would cite them as if they had been gathered for it.
+        if existing.get("plan_id") != plan_id and not payload.get("replace_plan", False):
+            raise SemanticError(
+                "plan.run-dir-reused",
+                "run_dir already holds a different research plan; use a new run_dir or pass replace_plan=true",
+            )
+        if existing.get("plan_id") == plan_id:
+            created_at = existing.get("created_at", created_at)
     plan = {
         "plan_id": plan_id,
-        "created_at": now_utc(),
+        "created_at": created_at,
         "question": question,
         "mode": mode,
         "language": language,
@@ -91,6 +105,5 @@ def build_plan(payload: dict[str, Any]) -> dict[str, Any]:
             "檢索次數達到 max_queries 仍無法覆蓋 primary 子問題時改為部分交付",
         ],
     }
-    plan_path = run_dir / "research_plan.json"
     write_json_atomic(plan_path, plan)
     return {"status": "OK", "plan": plan, "plan_path": str(plan_path)}

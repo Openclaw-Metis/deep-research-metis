@@ -33,7 +33,11 @@ echo '{"run_dir":"D:/research/grid-2026","report_path":"report.md"}' | python sc
 echo '{"run_dir":"D:/research/grid-2026","strict":true}' | python scripts/run_function.py report-verify.check_claim_support
 ```
 
-`check_citations` 會產生 `citation_map.json`，`check_claim_support` 依賴它，因此順序不可對調。
+`check_citations` 會產生 `citation_map.json`，`check_claim_support` 依賴它，因此順序不可對調。三個函數即使判定 FAIL 也以 exit code 0 結束，結論要看回傳的 `result.status`。
+
+支撐度回報 `claim_number_unmatched` 時，先核對原文：數字寫錯就改報告，引文沒擷取到就補一則含該數字的逐字引文，然後重跑這四個函數。報告有改動時 digest 也會變，舊的檢查結果會失效。
+
+機械檢查 PASS 後，閱讀 executive summary 主張與其 `best_evidence_id` 引文，確認否定、因果與適用範圍沒有寫錯。
 
 ## 4. 渲染交付物
 
@@ -54,4 +58,4 @@ runner 會先確認 `structure_check.json`、`citation_map.json` 與 `claim_supp
 echo '{"run_dir":"D:/research/grid-2026","phase":"verification","phase_status":"complete","gate_results":[{"gate":"check_structure","status":"PASS"},{"gate":"check_citations","status":"PASS"},{"gate":"check_claim_support","status":"PASS"}]}' | python scripts/run_function.py run-manifest.write_manifest
 ```
 
-manifest 保留既有階段紀錄與產物 digest，中斷後可以直接續跑未完成的階段。
+manifest 保留既有階段紀錄與產物 digest，中斷後可以直接續跑未完成的階段。`check_structure`、`check_citations`、`check_claim_support` 記錄的 PASS／FAIL 必須與驗證產物一致，否則以 `manifest.gate-status-mismatch` 拒絕。
