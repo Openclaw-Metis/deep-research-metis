@@ -1,0 +1,1282 @@
+{
+  "schema_version": "1.0.0",
+  "description": "驗證函數的凍結基準。每個案例以人工判讀標註三項檢查應得的結論，由 tests/verification_benchmark.py 經 runner 重播。held_out 在修改程式前凍結，事後不得為了提高分數而調整案例或標註。",
+  "frozen_at": "2026-10-31",
+  "scorer": {
+    "pass_rate": "案例內所有已標註 gate 都與人工判讀一致的比率",
+    "safety_pass_rate": "人工判讀為應擋下（任一 gate 預期 FAIL）的案例中，實際被擋下的比率",
+    "gate_status": "函數回傳的 status；被 guard 阻擋或失敗一律視為非 PASS"
+  },
+  "cases": [
+    {
+      "id": "dev-control-clean",
+      "split": "development",
+      "language": "zh",
+      "why": "對照組：乾淨的中文報告應全數通過。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲機構指出離岸風電併網容量在 2026 年成長 18% [1]。\n\n## 參考來源\n\n[1] 甲機構年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲機構指出離岸風電併網容量在 2026 年成長 18%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-control-unsupported",
+      "split": "development",
+      "language": "zh",
+      "why": "對照組：引文與主張無關時支撐度必須 FAIL。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n資料中心的需量反應能力仍然有限而且改善緩慢 [1]。\n\n## 參考來源\n\n[1] 甲機構年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "這段中文引文談的是完全無關的海洋生態保育議題與志工活動。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "dev-control-unregistered",
+      "split": "development",
+      "language": "en",
+      "why": "對照組：書目網址未登錄時引用檢查必須 FAIL。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nThe market grew steadily across the surveyed regions [1].\n\n## Bibliography\n\n[1] Report. https://example.org/not-registered\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "The market grew steadily across the surveyed regions."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "FAIL"
+      }
+    },
+    {
+      "id": "dev-decimal-cited",
+      "split": "development",
+      "language": "zh",
+      "why": "小數點不是句點：帶引用的數據句不得被切碎成未引用片段。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n台灣資料中心用電量在 2025 年達到 3.5 TWh，較前一年成長 12.4%，占全國用電 1.2%。[1]\n\n## 參考來源\n\n[1] 能源署統計。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "台灣資料中心用電量在 2025 年達到 3.5 TWh，較前一年成長 12.4%，占全國用電 1.2%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-hard-wrap",
+      "split": "development",
+      "language": "en",
+      "why": "硬換行段落是同一句話，引用涵蓋整句。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nThe global market reached 40 billion dollars in 2025 and\nis expected to double by the end of the decade [1].\n\n## Bibliography\n\n[1] Market review. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "The global market reached 40 billion dollars in 2025 and is expected to double by the end of the decade."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-table-uncited-number",
+      "split": "development",
+      "language": "zh",
+      "why": "表格內未引用的數字也是數據主張。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n| 廠商 | 市占 |\n| --- | --- |\n| 甲公司 | 45% |\n\n甲公司領先市場而且持續擴大布局 [1]。\n\n## 參考來源\n\n[1] 產業報告。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲公司領先市場而且持續擴大布局。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "dev-citation-forms",
+      "split": "development",
+      "language": "zh",
+      "why": "[1, 2]、[1-2] 與全形［1］都是有效引用。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲公司領先市場，乙公司緊追在後 [1, 2]。\n\n丙公司的市占正在快速下滑 [1-2]。\n\n丁公司也持續擴大全球布局［1］。\n\n## 參考來源\n\n[1] 報告一。https://example.org/a\n[2] 報告二。https://example.org/b\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        },
+        {
+          "url": "https://example.org/b",
+          "title": "來源 2"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲公司領先市場，乙公司緊追在後。"
+        },
+        {
+          "source": 0,
+          "quote": "丙公司的市占正在快速下滑。"
+        },
+        {
+          "source": 0,
+          "quote": "丁公司也持續擴大全球布局。"
+        },
+        {
+          "source": 1,
+          "quote": "甲公司領先市場，丙公司的市占下滑。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-numbered-bibliography",
+      "split": "development",
+      "language": "en",
+      "why": "編號清單形式的書目是有效書目。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nSolar generation rose sharply across the surveyed regions [1].\n\n## Bibliography\n\n1. Solar outlook. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Solar generation rose sharply across the surveyed regions."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-alias-heading-body",
+      "split": "development",
+      "language": "zh",
+      "why": "標題含「資料來源」的正文章節不是書目，其中的數字仍要受檢。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n結論段落內容相當長而且帶有引用 [1]。\n\n## 資料來源比較\n\n本節比較各機構的統計口徑差異，其中甲機構低估了 30% 的用電量。\n\n## 參考來源\n\n[1] 報告。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "結論段落內容相當長而且帶有引用。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "dev-methodology-process-numbers",
+      "split": "development",
+      "language": "zh",
+      "why": "方法章節的檢索次數是本研究自身的流程紀錄，不是外部事實主張。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲機構指出離岸風電持續成長 [1]。\n\n## Methodology 方法與檢索紀錄\n\n本研究共執行 18 次檢索並納入 12 個來源。\n\n## 參考來源\n\n[1] 報告。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲機構指出離岸風電持續成長。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-references-heading",
+      "split": "development",
+      "language": "en",
+      "why": "## References 是英文報告最常見的書目標題。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nStorage deployments expanded across every surveyed market [1].\n\n## References\n\n[1] Storage review. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Storage deployments expanded across every surveyed market."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-cjk-punctuation-url",
+      "split": "development",
+      "language": "zh",
+      "why": "中文標點黏在網址後面不屬於網址。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n工業部門的用電需求持續成長 [1]。住宅部門的用電需求保持平穩 [2]。\n\n## 參考來源\n\n[1] 標題一。https://example.org/a。\n[2] 標題二（https://example.org/b）\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        },
+        {
+          "url": "https://example.org/b",
+          "title": "來源 2"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "工業部門的用電需求持續成長。"
+        },
+        {
+          "source": 1,
+          "quote": "住宅部門的用電需求保持平穩。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-percent-encoded-url",
+      "split": "development",
+      "language": "zh",
+      "why": "同一網址的中文與百分比編碼形式是同一來源。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n資料中心是用電量持續攀升的設施 [1]。\n\n## 參考來源\n\n[1] 維基百科 https://example.org/wiki/資料中心\n",
+      "sources": [
+        {
+          "url": "https://example.org/wiki/%E8%B3%87%E6%96%99%E4%B8%AD%E5%BF%83",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "資料中心是用電量持續攀升的設施。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "dev-quote-order",
+      "split": "development",
+      "language": "mixed",
+      "why": "判定不得取決於引文順序：同語系引文明確不支撐時不得落回 unverifiable。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n資料中心的需量反應能力仍然有限而且改善緩慢 [1]。\n\n## 參考來源\n\n[1] 報告。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Quarterly revenue at the unrelated firm stayed essentially flat this year."
+        },
+        {
+          "source": 0,
+          "quote": "這段中文引文談的是完全無關的海洋生態保育議題與志工活動。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "dev-altered-number",
+      "split": "development",
+      "language": "zh",
+      "why": "主張的數字與引文不符時，字詞重疊再高也不得判定為支撐。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲機構指出離岸風電併網容量在 2026 年成長 81% [1]。\n\n## 參考來源\n\n[1] 甲機構年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲機構指出離岸風電併網容量在 2026 年成長 18%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-zh-decimals-thousands",
+      "split": "held_out",
+      "language": "zh",
+      "why": "千分位、小數與單位並存的中文數據句。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n2025 年全台資料中心用電量達 1,280 GWh，占全國售電量的 0.45%，較前一年增加 18.6% [1]。\n\n## 參考來源\n\n[1] 能源署，資料中心用電統計。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "2025 年全台資料中心用電量為 1,280 GWh，占全國售電量 0.45%，年增 18.6%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-en-wrap-abbreviation",
+      "split": "held_out",
+      "language": "en",
+      "why": "硬換行加上 U.S.、e.g. 等縮寫。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nU.S. data centers consumed 176 TWh in 2023, e.g. 4.4% of total\nelectricity use, according to the national laboratory assessment [1].\n\n## References\n\n[1] National laboratory report. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "U.S. data centers consumed 176 TWh in 2023, representing 4.4% of total electricity use in the national laboratory assessment."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-mixed-range-cross-script",
+      "split": "held_out",
+      "language": "mixed",
+      "why": "中文主張以範圍引用對應兩則英文引文。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings 主要發現\n\n國際能源總署估計全球資料中心用電量在 2030 年將達到 945 TWh [1-2]。\n\n## 參考來源\n\n[1] IEA outlook. https://example.org/a\n[2] IEA analysis. https://example.org/b\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        },
+        {
+          "url": "https://example.org/b",
+          "title": "來源 2"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "The IEA projects that global data centre electricity demand will reach 945 TWh by 2030."
+        },
+        {
+          "source": 1,
+          "quote": "Analysis shows data centre demand of 945 TWh in 2030."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-en-numbered-references",
+      "split": "held_out",
+      "language": "en",
+      "why": "編號標題加編號清單書目與 [1, 2] 引用。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nLithium iron phosphate cells held a 40% share of new grid storage deployments in 2024 [1, 2].\n\n## 6. References\n\n1. Storage Council. Annual review. https://example.org/a\n2. Grid Association. Deployment data. https://example.org/b\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        },
+        {
+          "url": "https://example.org/b",
+          "title": "來源 2"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Lithium iron phosphate cells held a 40% share of new grid storage deployments in 2024."
+        },
+        {
+          "source": 1,
+          "quote": "Grid storage deployments in 2024 were led by lithium iron phosphate cells at 40%."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-cited-table",
+      "split": "held_out",
+      "language": "zh",
+      "why": "表格列帶引用且數字與引文相符。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n| 廠商 | 2025 市占 | 來源 |\n| --- | --- | --- |\n| 甲儲能 | 31.5% | [1] |\n| 乙電池 | 22% | [1] |\n\n甲儲能在 2025 年的市占率為 31.5%，乙電池為 22% [1]。\n\n## 參考來源\n\n[1] 產業調查。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲儲能在 2025 年的市占率為 31.5%，乙電池為 22%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-cross-reference-methodology",
+      "split": "held_out",
+      "language": "zh",
+      "why": "章節交叉引用與方法章節的流程數字都不是外部數據主張。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n本節的數據定義請見第 3 節。\n\n離岸風電併網容量在 2025 年達到 3.1 GW [1]。\n\n## Methodology 方法與檢索紀錄\n\n本研究共執行 14 次檢索，篩選後納入 9 份來源。\n\n## 參考來源\n\n[1] 能源署。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "離岸風電併網容量在 2025 年達到 3.1 GW。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-fullwidth-bibliography",
+      "split": "held_out",
+      "language": "zh",
+      "why": "「參考資料」標題與全形括號、句號包住的網址。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n工業部門用電占比為 55.2% [1]。住宅部門用電占比為 18.4% [2]。\n\n## 參考資料\n\n[1] 經濟部，《能源統計手冊》（https://example.org/a）。\n[2] 台電，年度報告，https://example.org/b。\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        },
+        {
+          "url": "https://example.org/b",
+          "title": "來源 2"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "工業部門用電占比為 55.2%。"
+        },
+        {
+          "source": 1,
+          "quote": "住宅部門用電占比為 18.4%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-semicolon-clauses",
+      "split": "held_out",
+      "language": "zh",
+      "why": "分號連接的子句共用句尾引用。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲園區用電成長 12%；乙園區用電下滑 3% [1]。\n\n## 參考來源\n\n[1] 園區年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲園區用電成長 12%，乙園區用電下滑 3%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-hedged-rounding",
+      "split": "held_out",
+      "language": "zh",
+      "why": "明示「約」的合理四捨五入。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n再生能源占比約 12% [1]。\n\n## 參考來源\n\n[1] 能源統計。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "再生能源占比 12.4%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-en-accurate-paraphrase",
+      "split": "held_out",
+      "language": "en",
+      "why": "正確但用詞完全不同的改寫；字詞比對的已知難題。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nBattery prices fell 20% last year [1].\n\n## Bibliography\n\n[1] Price survey. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Pack costs declined by 20 percent in the prior year, according to the survey."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-bibliography-suffix",
+      "split": "held_out",
+      "language": "zh",
+      "why": "書目標題帶後綴字仍是書目。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲機構指出離岸風電持續成長 [1]。\n\n## 參考來源與延伸閱讀\n\n[1] 甲機構年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲機構指出離岸風電持續成長。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-en-clean-multisection",
+      "split": "held_out",
+      "language": "en",
+      "why": "多章節完整英文報告。",
+      "required_sections": [
+        "executive-summary",
+        "findings",
+        "limitations",
+        "bibliography"
+      ],
+      "report": "## Executive Summary\n\nDemand for grid storage rose 34% in 2025 [1].\n\n## Findings\n\nDemand for grid storage rose 34% in 2025, led by utility procurement [1].\n\n## Limitations\n\nThe survey covers utilities only and excludes residential systems.\n\n## Bibliography\n\n[1] Grid survey. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Demand for grid storage rose 34% in 2025, led by utility procurement."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-two-sources-two-numbers",
+      "split": "held_out",
+      "language": "zh",
+      "why": "同句兩個數字分別出自兩則引文。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲成長 12%，乙下滑 3% [1][2]。\n\n## 參考來源\n\n[1] 報告一。https://example.org/a\n[2] 報告二。https://example.org/b\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        },
+        {
+          "url": "https://example.org/b",
+          "title": "來源 2"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲成長 12%。"
+        },
+        {
+          "source": 1,
+          "quote": "乙下滑 3%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-altered-number",
+      "split": "held_out",
+      "language": "zh",
+      "why": "僅數字被改，其餘逐字相同。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n資料中心用電量年增 28% [1]。\n\n## 參考來源\n\n[1] 能源署。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "資料中心用電量年增 18%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-en-altered-number",
+      "split": "held_out",
+      "language": "en",
+      "why": "金額的數字對調。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nThe company reported revenue of $4.2 billion in fiscal 2025 [1].\n\n## Bibliography\n\n[1] Annual filing. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "The company reported revenue of $2.4 billion in fiscal 2025."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-en-hedge-too-far",
+      "split": "held_out",
+      "language": "en",
+      "why": "「about」不能掩蓋差距過大的數字。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nDemand grew by about 30% in 2025 [1].\n\n## Bibliography\n\n[1] Demand survey. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Demand grew by 18% in 2025."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-zh-table-uncited",
+      "split": "held_out",
+      "language": "zh",
+      "why": "表格列有數字但沒有引用。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n| 廠商 | 市占 |\n| --- | --- |\n| 乙電池 | 22% |\n\n甲儲能持續領先國內市場 [1]。\n\n## 參考來源\n\n[1] 產業調查。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲儲能持續領先國內市場。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-zh-alias-heading-uncited",
+      "split": "held_out",
+      "language": "zh",
+      "why": "標題含書目別名的正文章節內有未引用數字。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲儲能持續領先國內市場 [1]。\n\n## 能源資料來源分析\n\n官方統計低估了約 15% 的自用發電量。\n\n## 參考來源\n\n[1] 產業調查。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲儲能持續領先國內市場。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-en-sources-of-uncertainty",
+      "split": "held_out",
+      "language": "en",
+      "why": "「Sources of ...」章節是正文，其中數字仍要受檢。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nStorage demand kept rising across the surveyed utilities [1].\n\n## Sources of Uncertainty\n\nForecast error in this segment reached 25% over the last cycle.\n\n## Bibliography\n\n[1] Grid survey. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Storage demand kept rising across the surveyed utilities."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-en-source-without-evidence",
+      "split": "held_out",
+      "language": "en",
+      "why": "主張引用的來源沒有任何已持久化引文。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nStorage demand kept rising across the surveyed utilities [1].\n\nThe second survey found the opposite trend among small operators [2].\n\n## Bibliography\n\n[1] Grid survey. https://example.org/a\n[2] Operator survey. https://example.org/b\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        },
+        {
+          "url": "https://example.org/b",
+          "title": "來源 2"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Storage demand kept rising across the surveyed utilities."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-zh-unregistered-source",
+      "split": "held_out",
+      "language": "zh",
+      "why": "書目網址沒有登錄到帳本。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲機構指出離岸風電持續成長 [1]。\n\n## 參考來源\n\n[1] 甲機構年報。https://example.org/unregistered\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲機構指出離岸風電持續成長。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "FAIL"
+      }
+    },
+    {
+      "id": "ho-mixed-citation-without-entry",
+      "split": "held_out",
+      "language": "mixed",
+      "why": "行內引用 [3] 沒有書目條目。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings 主要發現\n\n甲機構指出離岸風電持續成長 [1]。乙機構也有相同的觀察 [3]。\n\n## 參考來源\n\n[1] 甲機構年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲機構指出離岸風電持續成長，乙機構也有相同的觀察。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "FAIL"
+      }
+    },
+    {
+      "id": "ho-zh-unrelated-quote",
+      "split": "held_out",
+      "language": "zh",
+      "why": "引文與主張無關。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n離岸風電的併網成本在近年明顯下降 [1]。\n\n## 參考來源\n\n[1] 甲機構年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "陸域生態調查顯示濕地鳥類族群維持穩定。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-en-wrapped-uncited-number",
+      "split": "held_out",
+      "language": "en",
+      "why": "跨行段落內的未引用數字。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## Findings\n\nStorage demand kept rising across the surveyed utilities [1].\n\nCooling accounts for nearly 40% of facility energy use across the\nsurveyed sites, and the share has not changed.\n\n## Bibliography\n\n[1] Grid survey. https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Storage demand kept rising across the surveyed utilities."
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-zh-placeholder",
+      "split": "held_out",
+      "language": "zh",
+      "why": "佔位字串未清除。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲機構指出離岸風電持續成長 [1]。本節其餘數字待補。\n\n## 參考來源\n\n[1] 甲機構年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲機構指出離岸風電持續成長。"
+        }
+      ],
+      "expected": {
+        "structure": "FAIL",
+        "citations": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-missing-limitations",
+      "split": "held_out",
+      "language": "zh",
+      "why": "缺少必要的限制章節。",
+      "required_sections": [
+        "findings",
+        "limitations",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲機構指出離岸風電持續成長 [1]。\n\n## 參考來源\n\n[1] 甲機構年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲機構指出離岸風電持續成長。"
+        }
+      ],
+      "expected": {
+        "structure": "FAIL",
+        "citations": "PASS"
+      }
+    },
+    {
+      "id": "ho-zh-second-sentence-uncited",
+      "split": "held_out",
+      "language": "zh",
+      "why": "同段第二句的數字沒有引用，也不在引文內。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n甲園區用電成長 12% [1]。乙園區用電下滑 3%。\n\n## 參考來源\n\n[1] 園區年報。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "甲園區用電成長 12%。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    },
+    {
+      "id": "ho-mixed-no-anchor-unrelated-same-script",
+      "split": "held_out",
+      "language": "mixed",
+      "why": "英文引文無法比對且中文引文無關，不得因此放行。",
+      "required_sections": [
+        "findings",
+        "bibliography"
+      ],
+      "report": "## 主要發現\n\n兩份來源都指向電網彈性不足的同一個結論 [1]。\n\n## 參考來源\n\n[1] 報告。https://example.org/a\n",
+      "sources": [
+        {
+          "url": "https://example.org/a",
+          "title": "來源 1"
+        }
+      ],
+      "evidence": [
+        {
+          "source": 0,
+          "quote": "Both sources point to the same conclusion about grid flexibility."
+        },
+        {
+          "source": 0,
+          "quote": "陸域生態調查顯示濕地鳥類族群維持穩定。"
+        }
+      ],
+      "expected": {
+        "structure": "PASS",
+        "citations": "PASS",
+        "support": "FAIL"
+      }
+    }
+  ]
+}
