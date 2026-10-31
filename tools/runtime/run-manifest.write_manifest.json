@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/run_manifest.py",
   "callable": "write_manifest",
-  "compatible_contract_digest": "sha256:b635bca0e8d5cc8adc9afe750c86cede61dc28192bf359fbb0b0b5d45ba2641e",
+  "compatible_contract_digest": "sha256:3114eed0ca002d81504d80c24aaa4f064eca23ea518602d6abf065c37f2ee644",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",

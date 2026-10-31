@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/claim_ledger.py",
   "callable": "extract_claims",
-  "compatible_contract_digest": "sha256:f7e64c73be7b7f1112c4692a30ffd331046ba072d337d23b120265921caabedf",
+  "compatible_contract_digest": "sha256:e29c19d0628d69aacf3a278dbaca665776b427346ed5f6b1cb3220c72e5e6ecd",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",

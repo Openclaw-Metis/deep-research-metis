@@ -16,7 +16,10 @@
       "type": "trigger",
       "language": "zh",
       "trigger_class": "direct",
-      "coverage_tags": ["should-trigger", "happy-path"],
+      "coverage_tags": [
+        "should-trigger",
+        "happy-path"
+      ],
       "prompt": "幫我做一份台灣資料中心用電趨勢的深度研究報告，每個數字都要能追到來源。",
       "expected_output": "選用 full-research-report playbook，先 build_plan 再依序登錄來源、持久化證據、抽取主張並執行三項驗證。",
       "files": [],
@@ -32,7 +35,10 @@
       "type": "trigger",
       "language": "en",
       "trigger_class": "direct",
-      "coverage_tags": ["should-trigger", "happy-path"],
+      "coverage_tags": [
+        "should-trigger",
+        "happy-path"
+      ],
       "prompt": "Produce a cited research report comparing grid-scale battery storage vendors for our 2027 procurement decision.",
       "expected_output": "採用 full-research-report playbook，language 設為 en，並使用英文章節標題別名。",
       "files": [],
@@ -48,10 +54,15 @@
       "type": "trigger",
       "language": "mixed",
       "trigger_class": "indirect",
-      "coverage_tags": ["should-trigger", "overlap-neighbor"],
+      "coverage_tags": [
+        "should-trigger",
+        "overlap-neighbor"
+      ],
       "prompt": "這份 draft 我已經寫完了，可以幫我 check 一下 citation 有沒有對應到 evidence 嗎？",
       "expected_output": "改用 report-verification playbook，只執行抽取與三項檢查，不重新產出報告。",
-      "files": ["report.md"],
+      "files": [
+        "report.md"
+      ],
       "expectations": [
         "選用 report-verification 而非 full-research-report",
         "不呼叫 report-render.render_html",
@@ -64,7 +75,10 @@
       "type": "trigger",
       "language": "zh",
       "trigger_class": "indirect",
-      "coverage_tags": ["should-trigger", "edge-case"],
+      "coverage_tags": [
+        "should-trigger",
+        "edge-case"
+      ],
       "prompt": "我還沒要寫報告，先把這十幾個資料來源和重點引文整理成可以追溯的底稿。",
       "expected_output": "採用 evidence-intake playbook，只登錄來源與證據並記錄 manifest。",
       "files": [],
@@ -80,7 +94,10 @@
       "type": "trigger",
       "language": "zh",
       "trigger_class": "negative",
-      "coverage_tags": ["should-not-trigger", "near-miss"],
+      "coverage_tags": [
+        "should-not-trigger",
+        "near-miss"
+      ],
       "prompt": "台積電最新一季的營收是多少？",
       "expected_output": "不啟用本 skill，交回 host 的一般網頁檢索流程並直接回答。",
       "files": [],
@@ -95,10 +112,15 @@
       "type": "trigger",
       "language": "en",
       "trigger_class": "negative",
-      "coverage_tags": ["should-not-trigger", "near-miss"],
+      "coverage_tags": [
+        "should-not-trigger",
+        "near-miss"
+      ],
       "prompt": "Summarise this PDF I just uploaded in five bullet points.",
       "expected_output": "不啟用本 skill；單一文件摘要屬於 out_of_scope，直接摘要即可。",
-      "files": ["whitepaper.pdf"],
+      "files": [
+        "whitepaper.pdf"
+      ],
       "expectations": [
         "不初始化研究執行工作區",
         "說明單一文件摘要不需要證據帳本"
@@ -110,7 +132,10 @@
       "type": "trigger",
       "language": "mixed",
       "trigger_class": "negative",
-      "coverage_tags": ["should-not-trigger", "overlap-neighbor"],
+      "coverage_tags": [
+        "should-not-trigger",
+        "overlap-neighbor"
+      ],
       "prompt": "研究做完了，幫我把結論做成 slide deck。",
       "expected_output": "領域檢查即停止並交棒給簡報製作流程。",
       "files": [],
@@ -125,10 +150,16 @@
       "type": "functional",
       "language": "zh",
       "trigger_class": "direct",
-      "coverage_tags": ["happy-path", "edge-case"],
+      "coverage_tags": [
+        "happy-path",
+        "edge-case"
+      ],
       "prompt": "報告是繁體中文，但引用的是英文原始報告，請確認主張是否有證據支撐。",
       "expected_output": "check_claim_support 以 cross-script-anchor 方法評分，沒有數字或專有名詞可比對時判為 unverifiable 並提出補證建議。",
-      "files": ["report.md", "evidence.jsonl"],
+      "files": [
+        "report.md",
+        "evidence.jsonl"
+      ],
       "expectations": [
         "跨語言主張不會被一律判為 unsupported",
         "unverifiable 主張附帶可執行的補證建議",
@@ -141,10 +172,14 @@
       "type": "functional",
       "language": "zh",
       "trigger_class": "direct",
-      "coverage_tags": ["failure-mode"],
+      "coverage_tags": [
+        "failure-mode"
+      ],
       "prompt": "這份報告沒有限制章節，可以直接交付嗎？",
       "expected_output": "check_structure 回報 section_missing 並判定 FAIL，交付流程停止。",
-      "files": ["report.md"],
+      "files": [
+        "report.md"
+      ],
       "expectations": [
         "finding 指出缺少的章節 key 與可接受別名",
         "不因為其他檢查 PASS 就宣稱可交付"
@@ -156,10 +191,14 @@
       "type": "functional",
       "language": "en",
       "trigger_class": "direct",
-      "coverage_tags": ["failure-mode"],
+      "coverage_tags": [
+        "failure-mode"
+      ],
       "prompt": "The bibliography has an entry I added by hand; verify the citation chain.",
       "expected_output": "check_citations 回報 source_not_registered 並判定 FAIL，要求先登錄來源。",
-      "files": ["report.md"],
+      "files": [
+        "report.md"
+      ],
       "expectations": [
         "finding 指出未登錄的書目編號與網址",
         "建議先執行 register_sources 而不是放寬檢查"
@@ -171,7 +210,10 @@
       "type": "functional",
       "language": "mixed",
       "trigger_class": "direct",
-      "coverage_tags": ["failure-mode", "edge-case"],
+      "coverage_tags": [
+        "failure-mode",
+        "edge-case"
+      ],
       "prompt": "驗證都過了，直接 render 成 HTML 交付吧。",
       "expected_output": "缺少 approval record 時 render_html 被擋下，回傳 approval_denied 並說明需要的授權欄位。",
       "files": [],
@@ -186,10 +228,15 @@
       "type": "functional",
       "language": "zh",
       "trigger_class": "indirect",
-      "coverage_tags": ["edge-case", "happy-path"],
+      "coverage_tags": [
+        "edge-case",
+        "happy-path"
+      ],
       "prompt": "昨天那個研究跑到一半中斷了，接著做完。",
       "expected_output": "讀取 run_manifest.json 後只重跑未完成階段，已完成階段不重複執行。",
-      "files": ["run_manifest.json"],
+      "files": [
+        "run_manifest.json"
+      ],
       "expectations": [
         "先讀 manifest 再決定要跑哪些函數",
         "不覆寫既有的 sources.jsonl 與 evidence.jsonl",
@@ -202,10 +249,16 @@
       "type": "functional",
       "language": "zh",
       "trigger_class": "direct",
-      "coverage_tags": ["failure-mode", "edge-case"],
+      "coverage_tags": [
+        "failure-mode",
+        "edge-case"
+      ],
       "prompt": "報告只有書目 [1]，正文沒有引用，請檢查是否可交付。",
       "expected_output": "check_structure 回報 no_inline_citation，check_citations 將書目項目列為 entry_without_citation。",
-      "files": ["report.md", "sources.jsonl"],
+      "files": [
+        "report.md",
+        "sources.jsonl"
+      ],
       "expectations": [
         "書目自身的 [1] 不計入 inline_citations",
         "不因書目有編號就誤判引用鏈完整"
@@ -217,10 +270,17 @@
       "type": "functional",
       "language": "en",
       "trigger_class": "direct",
-      "coverage_tags": ["failure-mode"],
+      "coverage_tags": [
+        "failure-mode"
+      ],
       "prompt": "The report changed after verification; render the old approved output anyway.",
       "expected_output": "render_html 比對 report digest 後以 render.verification-stale 阻擋，不產生 HTML。",
-      "files": ["report.md", "structure_check.json", "citation_map.json", "claim_support.json"],
+      "files": [
+        "report.md",
+        "structure_check.json",
+        "citation_map.json",
+        "claim_support.json"
+      ],
       "expectations": [
         "三項驗證產物必須綁定目前報告內容",
         "stale verification 不得由 approval 覆蓋"
@@ -232,14 +292,201 @@
       "type": "functional",
       "language": "mixed",
       "trigger_class": "direct",
-      "coverage_tags": ["failure-mode", "edge-case"],
+      "coverage_tags": [
+        "failure-mode",
+        "edge-case"
+      ],
       "prompt": "用先前核准 other.html 的 approval，輸出目前 report.html。",
       "expected_output": "runner 核對 scope、target、subject_digest 與 expires_at，任一不符即回傳 approval_denied。",
-      "files": ["report.md"],
+      "files": [
+        "report.md"
+      ],
       "expectations": [
         "approval target 必須等於 requested output_path",
         "approval subject_digest 必須等於目前報告 digest",
         "過期 approval 不可使用"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "zh-in-domain-unsupported-bibtex",
+      "type": "trigger",
+      "language": "zh",
+      "trigger_class": "indirect",
+      "coverage_tags": [
+        "should-trigger",
+        "edge-case"
+      ],
+      "prompt": "把這份研究報告的書目匯出成 BibTeX。",
+      "expected_output": "主要工作對象是研究報告所以先觸發；沒有對應函數時說明缺口並交棒，不臨時寫程式。",
+      "files": [
+        "report.md"
+      ],
+      "expectations": [
+        "不呼叫未登錄的函數",
+        "明確說明目前不支援 BibTeX 匯出與替代做法"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "mixed-add-sources-registration",
+      "type": "trigger",
+      "language": "mixed",
+      "trigger_class": "indirect",
+      "coverage_tags": [
+        "should-trigger",
+        "happy-path"
+      ],
+      "prompt": "check_citations 回報 source_not_registered，幫我把這兩個 URL 補進 ledger。",
+      "expected_output": "採用 source-registration，只登錄來源並重跑引用檢查的建議。",
+      "files": [
+        "sources.jsonl"
+      ],
+      "expectations": [
+        "選用 source-registration",
+        "不重新產出報告"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "zh-claim-triage-draft",
+      "type": "trigger",
+      "language": "zh",
+      "trigger_class": "indirect",
+      "coverage_tags": [
+        "should-trigger",
+        "edge-case"
+      ],
+      "prompt": "草稿寫到一半，先幫我列出哪些數字還沒有引用。",
+      "expected_output": "採用 claim-triage，列出 quantitative-uncited 主張與 claim_id，並說明這不是交付判定。",
+      "files": [
+        "report.md"
+      ],
+      "expectations": [
+        "選用 claim-triage",
+        "傳入 require_cited_claims=false",
+        "不宣稱可否交付"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "mixed-report-delivery-approved",
+      "type": "trigger",
+      "language": "mixed",
+      "trigger_class": "direct",
+      "coverage_tags": [
+        "should-trigger",
+        "happy-path"
+      ],
+      "prompt": "三項檢查都 PASS 了，我核准輸出 report.html。",
+      "expected_output": "採用 report-delivery，綁定 approval 後渲染並記錄 delivery 階段。",
+      "files": [
+        "report.md"
+      ],
+      "expectations": [
+        "選用 report-delivery",
+        "approval 含 target 與 subject_digest"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "zh-report-translation-contrast-negative",
+      "type": "trigger",
+      "language": "zh",
+      "trigger_class": "negative",
+      "coverage_tags": [
+        "should-not-trigger",
+        "overlap-neighbor",
+        "action-object-contrast"
+      ],
+      "prompt": "這份研究報告幫我翻成英文。",
+      "expected_output": "共享研究報告這個物件但動作是翻譯，屬於單一文件翻譯，不啟用本 skill。",
+      "files": [
+        "report.md"
+      ],
+      "expectations": [
+        "不建立 run_dir",
+        "不呼叫任何 registry 函數"
+      ]
+    },
+    {
+      "id": 21,
+      "name": "zh-changed-digit-failure",
+      "type": "functional",
+      "language": "zh",
+      "trigger_class": "direct",
+      "coverage_tags": [
+        "failure-mode"
+      ],
+      "prompt": "報告寫成長 81%，但所引原文是 18%，驗證抓得出來嗎？",
+      "expected_output": "check_claim_support 回報 claim_number_unmatched，支撐度 FAIL，unmatched_numbers 列出 81。",
+      "files": [
+        "report.md",
+        "evidence.jsonl"
+      ],
+      "expectations": [
+        "字詞重疊度高仍判定 FAIL",
+        "finding 附 claim_id 與數字"
+      ]
+    },
+    {
+      "id": 22,
+      "name": "en-table-figures-verified",
+      "type": "functional",
+      "language": "en",
+      "trigger_class": "direct",
+      "coverage_tags": [
+        "failure-mode",
+        "edge-case"
+      ],
+      "prompt": "Most figures in this comparison report sit in a table. Verify them too.",
+      "expected_output": "表格資料列進入主張抽取；未引用的數字回報 quantitative_claim_uncited，帶引用的列以數字比對判定。",
+      "files": [
+        "report.md"
+      ],
+      "expectations": [
+        "表頭不算主張",
+        "未引用的表格數字判定 FAIL"
+      ]
+    },
+    {
+      "id": 23,
+      "name": "mixed-manifest-overstated-gate",
+      "type": "functional",
+      "language": "mixed",
+      "trigger_class": "direct",
+      "coverage_tags": [
+        "failure-mode"
+      ],
+      "prompt": "support check 是 FAIL，但 manifest 先幫我記成 PASS。",
+      "expected_output": "write_manifest 以 manifest.gate-status-mismatch 拒絕，並說明要補證據重跑。",
+      "files": [
+        "run_manifest.json",
+        "claim_support.json"
+      ],
+      "expectations": [
+        "manifest 未被寫入",
+        "不提供繞過方式"
+      ]
+    },
+    {
+      "id": 24,
+      "name": "zh-run-dir-reused",
+      "type": "functional",
+      "language": "zh",
+      "trigger_class": "direct",
+      "coverage_tags": [
+        "failure-mode",
+        "edge-case"
+      ],
+      "prompt": "用同一個工作區開始研究另一個完全不同的問題。",
+      "expected_output": "build_plan 以 plan.run-dir-reused 拒絕，建議改用新的 run_dir。",
+      "files": [
+        "research_plan.json"
+      ],
+      "expectations": [
+        "不混用既有帳本",
+        "replace_plan 只在使用者明示時使用"
       ]
     }
   ]

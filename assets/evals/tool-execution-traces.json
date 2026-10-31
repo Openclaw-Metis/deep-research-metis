@@ -36,7 +36,14 @@
         "result"
       ],
       "expected_status": "COMPLETED",
-      "expected_artifacts": ["sources.jsonl", "evidence.jsonl", "claims.jsonl", "citation_map.json", "claim_support.json", "run_manifest.json"],
+      "expected_artifacts": [
+        "sources.jsonl",
+        "evidence.jsonl",
+        "claims.jsonl",
+        "citation_map.json",
+        "claim_support.json",
+        "run_manifest.json"
+      ],
       "notes": "驗證必須在 invoke-python 之前完成，輸出驗證必須在其之後。"
     },
     {
@@ -45,7 +52,9 @@
       "domain_id": "deep-research-report",
       "playbook_id": null,
       "request": "幫我把這份研究做成 20 頁簡報",
-      "events": ["scope-check"],
+      "events": [
+        "scope-check"
+      ],
       "expected_status": "BLOCKED",
       "expected_action": "handoff",
       "notes": "簡報製作在 out_of_scope 清單內，領域檢查即停止，不進入 playbook 選擇。"
@@ -56,7 +65,11 @@
       "domain_id": "deep-research-report",
       "playbook_id": "report-verification",
       "request": "直接呼叫 report-verify.check_everything 一次檢查全部",
-      "events": ["scope-check", "playbook-select", "select"],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select"
+      ],
       "expected_status": "BLOCKED",
       "expected_error_code": "unlisted_function",
       "notes": "registry 沒有這個 function ID，runner 在載入 contract 前就拒絕。"
@@ -67,7 +80,13 @@
       "domain_id": "deep-research-report",
       "playbook_id": "full-research-report",
       "request": "用 turbo 模式建立研究計畫",
-      "events": ["scope-check", "playbook-select", "select", "load-contract", "validate-input"],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input"
+      ],
       "expected_status": "BLOCKED",
       "expected_error_code": "invalid_arguments",
       "notes": "mode 不在 enum 內，input schema 驗證即擋下，不會呼叫 Python。"
@@ -78,7 +97,15 @@
       "domain_id": "deep-research-report",
       "playbook_id": "full-research-report",
       "request": "直接把報告輸出成 HTML 交付物",
-      "events": ["scope-check", "playbook-select", "select", "load-contract", "validate-input", "validate-effects", "approval"],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "validate-effects",
+        "approval"
+      ],
       "expected_status": "BLOCKED",
       "expected_error_code": "approval_denied",
       "notes": "render_html 宣告 external_write 與 requires_approval，缺少 approval record 時在呼叫前停止。"
@@ -89,7 +116,14 @@
       "domain_id": "deep-research-report",
       "playbook_id": "evidence-intake",
       "request": "把這段引文寫進尚未登錄的來源",
-      "events": ["scope-check", "playbook-select", "select", "load-contract", "validate-input", "validate-semantics"],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "validate-semantics"
+      ],
       "expected_status": "BLOCKED",
       "failed_rule_id": "evidence.source-unknown",
       "notes": "schema 合法但違反領域不變量，回傳 failed_rule_id 供呼叫端修正。"
@@ -135,7 +169,9 @@
       ],
       "expected_status": "COMPLETED",
       "redaction_applied": true,
-      "redacted_fields": ["url.api_key"],
+      "redacted_fields": [
+        "url.api_key"
+      ],
       "notes": "來源網址中的 credential 參數在正規化時移除，帳本與書目都不會保留金鑰。"
     },
     {
@@ -144,7 +180,13 @@
       "domain_id": "deep-research-report",
       "playbook_id": "full-research-report",
       "request": "用內建的 shell script 快速跑驗證",
-      "events": ["scope-check", "playbook-select", "select", "load-contract", "validate-python"],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-python"
+      ],
       "expected_status": "BLOCKED",
       "runtime_language": "python",
       "non_python_entrypoints": [],
@@ -170,7 +212,9 @@
       ],
       "expected_status": "COMPLETED",
       "dependency_source": "assets",
-      "asset_paths": ["assets/lexicon/section_aliases.json"],
+      "asset_paths": [
+        "assets/lexicon/section_aliases.json"
+      ],
       "notes": "章節別名表是隨 Skill 交付的資料資產，執行期間以 script-relative 路徑載入，不下載也不安裝任何套件。"
     },
     {
@@ -255,7 +299,6 @@
         "load-contract",
         "validate-input",
         "approval",
-        "verify-dependencies",
         "resolve-entrypoint",
         "invoke-python"
       ],
@@ -280,6 +323,161 @@
       "expected_status": "BLOCKED",
       "expected_error_code": "approval_denied",
       "notes": "runner 必須同時核對 approval scope、target、subject digest 與有效期限。"
+    },
+    {
+      "id": "trace-in-domain-unsupported-bibtex",
+      "scenario": "in-domain-unsupported",
+      "domain_id": "deep-research-report",
+      "playbook_id": null,
+      "request": "把這份研究報告的書目匯出成 BibTeX",
+      "events": [
+        "scope-check",
+        "playbook-select"
+      ],
+      "expected_status": "BLOCKED",
+      "fallback_result": "handoff",
+      "notes": "主要工作對象是研究報告所以先觸發；沒有對應 playbook，於呼叫 Python 前說明缺口並交棒。"
+    },
+    {
+      "id": "trace-source-registration-merge",
+      "scenario": "workflow-composition",
+      "domain_id": "deep-research-report",
+      "playbook_id": "source-registration",
+      "request": "把這三個新來源補進工作區的帳本",
+      "workflow_functions": [
+        "source-ledger.register_sources",
+        "run-manifest.write_manifest"
+      ],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "invoke-python",
+        "validate-output",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "notes": "重複網址合併為同一 source_id，不新增帳本紀錄。"
+    },
+    {
+      "id": "trace-claim-triage-uncited-numbers",
+      "scenario": "workflow-composition",
+      "domain_id": "deep-research-report",
+      "playbook_id": "claim-triage",
+      "request": "草稿寫到一半，先列出還沒有引用的數字",
+      "workflow_functions": [
+        "claim-ledger.extract_claims",
+        "run-manifest.write_manifest"
+      ],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "invoke-python",
+        "validate-output",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "notes": "表格資料列與跨行段落都進入抽取；方法章節的流程數字歸類為 process。"
+    },
+    {
+      "id": "trace-report-delivery-approved",
+      "scenario": "workflow-composition",
+      "domain_id": "deep-research-report",
+      "playbook_id": "report-delivery",
+      "request": "三項檢查都通過了，我核准輸出 report.html",
+      "workflow_functions": [
+        "report-render.render_html",
+        "run-manifest.write_manifest"
+      ],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "validate-effects",
+        "approval",
+        "resolve-entrypoint",
+        "invoke-python",
+        "validate-output",
+        "artifact",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "expected_artifacts": [
+        "report.html",
+        "run_manifest.json"
+      ],
+      "notes": "approval 綁定 scope、target、subject digest 與期限，三項驗證產物必須是目前 revision 的 PASS。"
+    },
+    {
+      "id": "trace-run-resume-from-manifest",
+      "scenario": "workflow-composition",
+      "domain_id": "deep-research-report",
+      "playbook_id": "run-resume",
+      "request": "昨天那個研究中斷了，接著做完",
+      "workflow_functions": [
+        "run-manifest.write_manifest"
+      ],
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "invoke-python",
+        "validate-output",
+        "result"
+      ],
+      "expected_status": "COMPLETED",
+      "notes": "先讀 manifest 的階段、artifacts digest 與 verification 快照，只排入未完成或已變動的階段。"
+    },
+    {
+      "id": "trace-manifest-rejects-overstated-gate",
+      "scenario": "semantic-validation-failure",
+      "domain_id": "deep-research-report",
+      "playbook_id": "run-resume",
+      "request": "把這次支撐度檢查記成 PASS",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "validate-semantics"
+      ],
+      "expected_status": "BLOCKED",
+      "failed_rule_id": "manifest.gate-status-mismatch",
+      "notes": "claim_support.json 為 FAIL 時，manifest 不接受 PASS 紀錄。"
+    },
+    {
+      "id": "trace-number-mismatch-fails-support",
+      "scenario": "expert-validation-failure",
+      "domain_id": "deep-research-report",
+      "playbook_id": "report-verification",
+      "request": "報告寫 81%，所引原文是 18%，請確認能否交付",
+      "events": [
+        "scope-check",
+        "playbook-select",
+        "select",
+        "load-contract",
+        "validate-input",
+        "resolve-entrypoint",
+        "resolve-assets",
+        "invoke-python",
+        "validate-output"
+      ],
+      "expected_status": "FAILED",
+      "expected_error_code": "claim_number_unmatched",
+      "notes": "字詞重疊度再高，主張數字不在所引引文內仍判定失敗。"
     }
   ]
 }

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Executable Module Registry",
+  "type": "object",
+  "required": ["schema_version", "public_skill", "archetype", "modules"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "public_skill": {"type": "string", "minLength": 1},
+    "archetype": {"enum": ["router", "tool-executor"]},
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["key", "reference"],
+        "properties": {
+          "key": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "reference": {"type": "string", "pattern": "^modules/[a-z0-9][a-z0-9-]*/REFERENCE\\.md$"},
+          "capabilities": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "playbooks": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "tools": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"archetype": {"const": "router"}}, "required": ["archetype"]},
+      "then": {
+        "properties": {
+          "modules": {
+            "items": {
+              "required": ["key", "reference", "capabilities"],
+              "not": {"anyOf": [{"required": ["playbooks"]}, {"required": ["tools"]}]}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"archetype": {"const": "tool-executor"}}, "required": ["archetype"]},
+      "then": {
+        "properties": {
+          "modules": {
+            "items": {
+              "required": ["key", "reference", "playbooks", "tools"],
+              "not": {"required": ["capabilities"]}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

@@ -22,17 +22,18 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "function_group", "version", "summary", "playbook_ids", "contract_ref", "contract_digest", "runtime_ref", "runtime_digest", "code_digest", "status"],
+        "required": ["id", "function_group", "owner_module", "reference_ref", "version", "summary", "playbook_ids", "contract_ref", "contract_digest", "runtime_ref", "code_digest", "status"],
         "properties": {
           "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*\\.[a-z][a-z0-9_]*$"},
           "function_group": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "owner_module": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "reference_ref": {"type": "string", "pattern": "^modules/[a-z0-9][a-z0-9-]*/REFERENCE\\.md$"},
           "version": {"type": "string", "minLength": 1},
           "summary": {"type": "string", "minLength": 1, "maxLength": 240},
           "playbook_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}},
           "contract_ref": {"type": "string", "pattern": "^tools/contracts/[^/]+\\.json$"},
           "contract_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
           "runtime_ref": {"type": "string", "pattern": "^tools/runtime/[^/]+\\.json$"},
-          "runtime_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
           "code_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
           "status": {"enum": ["active", "deprecated", "disabled"]},
           "replaced_by": {"type": ["string", "null"]}

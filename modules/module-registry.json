@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "public_skill": "deep-research-metis",
+  "archetype": "tool-executor",
+  "modules": [
+    {
+      "key": "research-plan",
+      "reference": "modules/research-plan/REFERENCE.md",
+      "playbooks": [
+        "full-research-report"
+      ],
+      "tools": [
+        "research-plan.build_plan"
+      ]
+    },
+    {
+      "key": "source-ledger",
+      "reference": "modules/source-ledger/REFERENCE.md",
+      "playbooks": [
+        "source-registration"
+      ],
+      "tools": [
+        "source-ledger.register_sources"
+      ]
+    },
+    {
+      "key": "evidence-store",
+      "reference": "modules/evidence-store/REFERENCE.md",
+      "playbooks": [
+        "evidence-intake"
+      ],
+      "tools": [
+        "evidence-store.append_evidence"
+      ]
+    },
+    {
+      "key": "claim-ledger",
+      "reference": "modules/claim-ledger/REFERENCE.md",
+      "playbooks": [
+        "claim-triage"
+      ],
+      "tools": [
+        "claim-ledger.extract_claims"
+      ]
+    },
+    {
+      "key": "report-verify",
+      "reference": "modules/report-verify/REFERENCE.md",
+      "playbooks": [
+        "report-verification"
+      ],
+      "tools": [
+        "report-verify.check_structure",
+        "report-verify.check_citations",
+        "report-verify.check_claim_support"
+      ]
+    },
+    {
+      "key": "report-render",
+      "reference": "modules/report-render/REFERENCE.md",
+      "playbooks": [
+        "report-delivery"
+      ],
+      "tools": [
+        "report-render.render_html"
+      ]
+    },
+    {
+      "key": "run-manifest",
+      "reference": "modules/run-manifest/REFERENCE.md",
+      "playbooks": [
+        "run-resume"
+      ],
+      "tools": [
+        "run-manifest.write_manifest"
+      ]
+    }
+  ]
+}

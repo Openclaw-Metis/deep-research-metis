@@ -1,6 +1,6 @@
 {
   "id": "research-plan.build_plan",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "接受研究問題與呼叫端撰寫的子問題，產生 plan_id、模式預算、必要章節標題與停止條件，並寫入工作區的 research_plan.json。",
   "input_schema": {
     "type": "object",
@@ -41,6 +41,10 @@
       "audience": {
         "type": "string",
         "description": "報告讀者定位。"
+      },
+      "replace_plan": {
+        "type": "boolean",
+        "description": "明示以新的研究問題取代工作區內既有計畫；既有帳本會留在原處。"
       }
     },
     "required": [
@@ -69,6 +73,11 @@
     {
       "rule_id": "workspace.outside-skill-root",
       "description": "run_dir 不得落在 skill 資料夾內，避免技能持有可變狀態。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "plan.run-dir-reused",
+      "description": "工作區已有不同問題的計畫時，除非明示 replace_plan 否則拒絕。",
       "failure_action": "block"
     }
   ],

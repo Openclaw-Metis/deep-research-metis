@@ -9,7 +9,7 @@ deep-research-metis 由 Openclaw-Metis 維護，以 MIT 授權釋出。
 
 ## 骨架與契約 schema
 
-- `schemas/` 內的 `skill-contract.schema.json`、`tool-contract.schema.json`、`tool-registry.schema.json`、`tool-runtime-metadata.schema.json`、`tool-execution-trace.schema.json`、`lifecycle.schema.json`、`release_evidence.schema.json`，以及 `policies/` 的政策樣板，由 [SkillOps Studio](https://github.com/AllanYiin/skills/tree/main/skills/skillops-studio)（MIT，作者 Allan Yiin）的 skill 初始化器產生，用於驗證本技能的 Code as Tool 契約。
+- `schemas/` 內的 `skill-contract.schema.json`、`tool-contract.schema.json`、`tool-registry.schema.json`、`tool-runtime-metadata.schema.json`、`tool-execution-trace.schema.json`、`module-registry.schema.json`、`lifecycle.schema.json`、`release_evidence.schema.json`，以及 `policies/` 的政策樣板，由 [SkillOps Studio](https://github.com/AllanYiin/skills/tree/main/skills/skillops-studio)（MIT，作者 Allan Yiin）的 skill 初始化器產生，用於驗證本技能的 Code as Tool 契約。
 
 ## 執行面聲明
 

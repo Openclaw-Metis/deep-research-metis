@@ -1,7 +1,7 @@
 {
   "id": "report-verify.check_citations",
-  "version": "1.1.0",
-  "description": "解析報告正文的 [N] 標記與書目條目（排除 code fence 與書目自身編號），檢查引用鏈並輸出綁定 report digest 的 citation_map.json。",
+  "version": "1.2.0",
+  "description": "比對行內引用、書目條目與來源帳本並產生引用對應表，支援 [1, 2]、[1-3]、全形括號與編號清單書目；實際引用來源少於計畫下限時回報 warning。",
   "input_schema": {
     "type": "object",
     "properties": {

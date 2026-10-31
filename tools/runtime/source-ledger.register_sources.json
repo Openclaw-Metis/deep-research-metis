@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/source_ledger.py",
   "callable": "register_sources",
-  "compatible_contract_digest": "sha256:5af4f55eb7d5eafef50657f55a7733edc2e07598c0192ee9f02648be8241960b",
+  "compatible_contract_digest": "sha256:08572de32b040f826ee4ae602db0b9b2ecd795adc1f156b263b81dec2d885d7e",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",

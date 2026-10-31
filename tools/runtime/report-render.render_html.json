@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/report_render.py",
   "callable": "render_html",
-  "compatible_contract_digest": "sha256:6d19d8388c36578a26feff9c7703d9c92969533e12926e1a7353cf29d3197926",
+  "compatible_contract_digest": "sha256:34e4076f6a5d8c18f627c59e7401527b7ba80b602bf2eab555ab58884863f7ff",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",

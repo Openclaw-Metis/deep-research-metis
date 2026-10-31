@@ -5,7 +5,7 @@
   "runtime": "python",
   "module": "scripts/report_verify.py",
   "callable": "check_structure",
-  "compatible_contract_digest": "sha256:c2bc0a6bd35c2c8cf609e87e2a3969c50ee60b1d95c96c1f09d7ae7c4444aa84",
+  "compatible_contract_digest": "sha256:3f5c8307cc347a318aadbade2199f29fb8864ef530ad049ee7c3be9a1623a0c8",
   "python_requires": ">=3.9",
   "invocation": "python-callable-json",
   "path_resolution": "script-relative",

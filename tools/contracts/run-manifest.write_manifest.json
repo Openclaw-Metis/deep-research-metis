@@ -1,7 +1,7 @@
 {
   "id": "run-manifest.write_manifest",
-  "version": "1.0.0",
-  "description": "以原子寫入更新 run_manifest.json，保留既有階段紀錄與產物 digest，讓中斷的研究可以續跑而不重跑已完成階段。",
+  "version": "1.1.0",
+  "description": "合併階段狀態、gate 結果與產物 digest；已知驗證 gate 的狀態必須與其驗證產物一致，否則拒絕寫入。",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -91,6 +91,11 @@
     {
       "rule_id": "manifest.phase-downgrade-blocked",
       "description": "已完成階段不得在未明示 allow_downgrade 時被降級。",
+      "failure_action": "block"
+    },
+    {
+      "rule_id": "manifest.gate-status-mismatch",
+      "description": "check_structure、check_citations 與 check_claim_support 記錄的 PASS／FAIL 必須與驗證產物一致。",
       "failure_action": "block"
     }
   ],

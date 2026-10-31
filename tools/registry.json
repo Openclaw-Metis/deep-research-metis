@@ -11,44 +11,47 @@
     {
       "id": "research-plan.build_plan",
       "function_group": "research-plan",
-      "version": "1.0.0",
+      "owner_module": "research-plan",
+      "reference_ref": "modules/research-plan/REFERENCE.md",
+      "version": "1.1.0",
       "summary": "把研究問題與子問題固定成含檢索預算、必要章節與停止條件的 run plan。",
       "playbook_ids": [
-        "full-research-report",
-        "evidence-intake"
+        "full-research-report"
       ],
       "contract_ref": "tools/contracts/research-plan.build_plan.json",
-      "contract_digest": "sha256:8ae4bc6c8830504e21bd31b7ea9c8da87b8585493fc85be154aa0e5b37fe67c7",
+      "contract_digest": "sha256:6d452b32c289a2fa6afd499c29587bfafa57ae3be880fe74ea1a77497a34e354",
       "runtime_ref": "tools/runtime/research-plan.build_plan.json",
       "code_digest": "sha256:6eb316c4b72edcaaeda88bbc293c9f7741e9a225d5772c29228bc5cf4e6c6c8d",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:d34a1427037534642469db8640af2859176363192e22af85847f47ff7428fbfd"
+      "runtime_digest": "sha256:3570c0d53f40b56d345f824b00dcb5ea36bf6d6e140b8a4378fafe3e45d9738e"
     },
     {
       "id": "source-ledger.register_sources",
       "function_group": "source-ledger",
-      "version": "1.1.0",
+      "owner_module": "source-ledger",
+      "reference_ref": "modules/source-ledger/REFERENCE.md",
+      "version": "1.2.0",
       "summary": "正規化來源網址、指派穩定 source_id、合併重複並記錄諮詢性權威訊號。",
       "playbook_ids": [
-        "full-research-report",
-        "evidence-intake"
+        "source-registration"
       ],
       "contract_ref": "tools/contracts/source-ledger.register_sources.json",
-      "contract_digest": "sha256:5af4f55eb7d5eafef50657f55a7733edc2e07598c0192ee9f02648be8241960b",
+      "contract_digest": "sha256:08572de32b040f826ee4ae602db0b9b2ecd795adc1f156b263b81dec2d885d7e",
       "runtime_ref": "tools/runtime/source-ledger.register_sources.json",
       "code_digest": "sha256:41eb7dab4c606944f388efce8686279f412b5f15e45f8e09ca317decaed42f34",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:36d6ceb0e14b8f0011f4104a81d83b2bcb0bbae57d0d8ae1103dc9fd806c3579"
+      "runtime_digest": "sha256:0a2915438f324c55ba639d34d2980f91c9aef58bfcb6aa3716bcef37b988924c"
     },
     {
       "id": "evidence-store.append_evidence",
       "function_group": "evidence-store",
+      "owner_module": "evidence-store",
+      "reference_ref": "modules/evidence-store/REFERENCE.md",
       "version": "1.0.0",
       "summary": "把逐字引文綁定到已登錄來源並以 append-only 方式持久化。",
       "playbook_ids": [
-        "full-research-report",
         "evidence-intake"
       ],
       "contract_ref": "tools/contracts/evidence-store.append_evidence.json",
@@ -62,104 +65,110 @@
     {
       "id": "claim-ledger.extract_claims",
       "function_group": "claim-ledger",
-      "version": "1.1.0",
+      "owner_module": "claim-ledger",
+      "reference_ref": "modules/claim-ledger/REFERENCE.md",
+      "version": "1.2.0",
       "summary": "以中英文共用規則切分報告句子，抽出主張、章節與引用編號。",
       "playbook_ids": [
-        "full-research-report",
-        "report-verification"
+        "claim-triage"
       ],
       "contract_ref": "tools/contracts/claim-ledger.extract_claims.json",
-      "contract_digest": "sha256:f7e64c73be7b7f1112c4692a30ffd331046ba072d337d23b120265921caabedf",
+      "contract_digest": "sha256:e29c19d0628d69aacf3a278dbaca665776b427346ed5f6b1cb3220c72e5e6ecd",
       "runtime_ref": "tools/runtime/claim-ledger.extract_claims.json",
       "code_digest": "sha256:0e0c42f552aad9170a6543915137f1a08fa20d9adac633a864f17e41d737b1bd",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:11f31b0585df15fb585c8d59aadbff1dacca43baff5a9a04d107d2e47e065eda"
+      "runtime_digest": "sha256:784211196487b09f7980e9eacd825790b027fa9b83faedb3e2df23515cbdd7b1"
     },
     {
       "id": "report-verify.check_structure",
       "function_group": "report-verify",
-      "version": "1.1.0",
+      "owner_module": "report-verify",
+      "reference_ref": "modules/report-verify/REFERENCE.md",
+      "version": "1.2.0",
       "summary": "檢查必要章節、雙語標題、佔位字串與雙語長度下限。",
       "playbook_ids": [
-        "full-research-report",
         "report-verification"
       ],
       "contract_ref": "tools/contracts/report-verify.check_structure.json",
-      "contract_digest": "sha256:c2bc0a6bd35c2c8cf609e87e2a3969c50ee60b1d95c96c1f09d7ae7c4444aa84",
+      "contract_digest": "sha256:3f5c8307cc347a318aadbade2199f29fb8864ef530ad049ee7c3be9a1623a0c8",
       "runtime_ref": "tools/runtime/report-verify.check_structure.json",
       "code_digest": "sha256:9ddb69a1b74725285722c4686f7dd031242549e5d9928a9b6d71781c1c3f4f7f",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:381c40903b9d7eca530aab59b0a3c13d411b77ccb97186a217c7f8d94ade5514"
+      "runtime_digest": "sha256:c4d67f86aaeffa71e4b5ea2d9e100b7d49394c28ab6eabe65c93dce4f7ee2d1c"
     },
     {
       "id": "report-verify.check_citations",
       "function_group": "report-verify",
-      "version": "1.1.0",
+      "owner_module": "report-verify",
+      "reference_ref": "modules/report-verify/REFERENCE.md",
+      "version": "1.2.0",
       "summary": "比對行內引用、書目條目與來源帳本，產生引用對應表。",
       "playbook_ids": [
-        "full-research-report",
         "report-verification"
       ],
       "contract_ref": "tools/contracts/report-verify.check_citations.json",
-      "contract_digest": "sha256:cf1699c55320a80b0e6f9d151686925478fa7691c71f20a926ea86078edb6f40",
+      "contract_digest": "sha256:b5054586cacccbc772371840376183dc075ca21a3a41eeeb913cfeddf3b6d8bf",
       "runtime_ref": "tools/runtime/report-verify.check_citations.json",
       "code_digest": "sha256:9ddb69a1b74725285722c4686f7dd031242549e5d9928a9b6d71781c1c3f4f7f",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:ca6f449a4556836b50aceea012b49c0652077b77904aa7c33a22ce48dd72d139"
+      "runtime_digest": "sha256:eb56baed3be8a5d7695e812bd76a153c9255e6e401cbcfd68d7f501f619e78df"
     },
     {
       "id": "report-verify.check_claim_support",
       "function_group": "report-verify",
-      "version": "1.1.0",
+      "owner_module": "report-verify",
+      "reference_ref": "modules/report-verify/REFERENCE.md",
+      "version": "1.2.0",
       "summary": "以拉丁詞與 CJK bigram 雙軌評分每個帶引用主張的證據支撐度。",
       "playbook_ids": [
-        "full-research-report",
         "report-verification"
       ],
       "contract_ref": "tools/contracts/report-verify.check_claim_support.json",
-      "contract_digest": "sha256:884b40eac7ec8c05c13fca227d8e6116aeefb6a196bdcadd00adb8ed85a470a2",
+      "contract_digest": "sha256:20071079779c1759666ac8f05e568a58e44b14139b3d91f866af1ca32e03e15f",
       "runtime_ref": "tools/runtime/report-verify.check_claim_support.json",
       "code_digest": "sha256:9ddb69a1b74725285722c4686f7dd031242549e5d9928a9b6d71781c1c3f4f7f",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:3157b1dce7b4c8f88fb5521bde16f4e99f515b4d85a716201db8c0e5afd51f07"
+      "runtime_digest": "sha256:a77f2cf3d4d794867be91646e0d780d634b3aba336f388b38360715ecfd72bdd"
     },
     {
       "id": "report-render.render_html",
       "function_group": "report-render",
-      "version": "1.1.0",
+      "owner_module": "report-render",
+      "reference_ref": "modules/report-render/REFERENCE.md",
+      "version": "1.2.0",
       "summary": "把通過驗證的報告轉成單檔、全跳脫、無外部資源的 HTML 交付物。",
       "playbook_ids": [
-        "full-research-report"
+        "report-delivery"
       ],
       "contract_ref": "tools/contracts/report-render.render_html.json",
-      "contract_digest": "sha256:6d19d8388c36578a26feff9c7703d9c92969533e12926e1a7353cf29d3197926",
+      "contract_digest": "sha256:34e4076f6a5d8c18f627c59e7401527b7ba80b602bf2eab555ab58884863f7ff",
       "runtime_ref": "tools/runtime/report-render.render_html.json",
       "code_digest": "sha256:2068fa8b7ff97e72bf15ca63ad426f579b0a19d49a11b4b3b0d36c9eae45687b",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:4684621d22e2c98ea8d14c72aa08785171cb4c021496e10254ee77dfa69fcfdf"
+      "runtime_digest": "sha256:19881c7bf362defb8509a58acadaa104a6db49d2661f978faa128babf7993659"
     },
     {
       "id": "run-manifest.write_manifest",
       "function_group": "run-manifest",
-      "version": "1.0.0",
+      "owner_module": "run-manifest",
+      "reference_ref": "modules/run-manifest/REFERENCE.md",
+      "version": "1.1.0",
       "summary": "合併階段狀態、gate 結果與產物摘要，維持可續跑的 run manifest。",
       "playbook_ids": [
-        "full-research-report",
-        "report-verification",
-        "evidence-intake"
+        "run-resume"
       ],
       "contract_ref": "tools/contracts/run-manifest.write_manifest.json",
-      "contract_digest": "sha256:b635bca0e8d5cc8adc9afe750c86cede61dc28192bf359fbb0b0b5d45ba2641e",
+      "contract_digest": "sha256:3114eed0ca002d81504d80c24aaa4f064eca23ea518602d6abf065c37f2ee644",
       "runtime_ref": "tools/runtime/run-manifest.write_manifest.json",
       "code_digest": "sha256:57525cac337b7ae6bbb5c6dfb41079e0053168829b524ba9208be035b0f17902",
       "status": "active",
       "replaced_by": null,
-      "runtime_digest": "sha256:e723136dc2e85c4d3bf17b7cfebed051f462e7f33e2b69137b3f8daa2c764933"
+      "runtime_digest": "sha256:10d1592f1792978c607e259ce33be18fe82b6718340f1821e62d79a6a7721310"
     }
   ]
 }
